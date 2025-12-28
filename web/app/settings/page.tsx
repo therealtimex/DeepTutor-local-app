@@ -481,7 +481,9 @@ export default function SettingsPage() {
                     {["light", "dark"].map((themeOption) => (
                       <button
                         key={themeOption}
-                        onClick={() => handleUIChange("theme", themeOption as any)}
+                        onClick={() =>
+                          handleUIChange("theme", themeOption as any)
+                        }
                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all ${
                           editedUI.theme === themeOption
                             ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
@@ -493,7 +495,11 @@ export default function SettingsPage() {
                         ) : (
                           <Moon className="w-4 h-4" />
                         )}
-                        <span>{themeOption === "light" ? t("Light Mode") : t("Dark Mode")}</span>
+                        <span>
+                          {themeOption === "light"
+                            ? t("Light Mode")
+                            : t("Dark Mode")}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -787,13 +793,19 @@ export default function SettingsPage() {
                 <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium mb-1">{t("Runtime Configuration")}</p>
+                    <p className="font-medium mb-1">
+                      {t("Runtime Configuration")}
+                    </p>
                     <p className="text-blue-600 dark:text-blue-400">
                       {t("Environment variables are loaded from")}{" "}
                       <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">
                         .env
                       </code>{" "}
-                      {t("file on startup")}. {t("Changes made here take effect immediately but are not saved to file")}. {t("On restart, values will be reloaded from")} .env.
+                      {t("file on startup")}.{" "}
+                      {t(
+                        "Changes made here take effect immediately but are not saved to file",
+                      )}
+                      . {t("On restart, values will be reloaded from")} .env.
                     </p>
                   </div>
                 </div>

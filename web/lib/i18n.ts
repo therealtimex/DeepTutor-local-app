@@ -23,11 +23,12 @@ export const translations = {
     Success: "Success",
     "View All": "View All",
     Refresh: "Refresh",
-    "Create": "Create",
+    Create: "Create",
 
     // Settings Page
     "System Settings": "System Settings",
-    "Manage system configuration and preferences": "Manage system configuration and preferences",
+    "Manage system configuration and preferences":
+      "Manage system configuration and preferences",
     "General Settings": "General Settings",
     "Environment Variables": "Environment Variables",
     "Interface Preferences": "Interface Preferences",
@@ -39,7 +40,8 @@ export const translations = {
     Chinese: "Chinese",
     "System Configuration": "System Configuration",
     "System Language": "System Language",
-    "Default language for system operations": "Default language for system operations",
+    "Default language for system operations":
+      "Default language for system operations",
     "Research Tools": "Research Tools",
     "Web Search": "Web Search",
     "Max Results": "Max Results",
@@ -53,29 +55,35 @@ export const translations = {
     Status: "Status",
     "Active LLM Model": "Active LLM Model",
     "Not configured": "Not configured",
-    "Configure in Environment Variables tab": "Configure in Environment Variables tab",
+    "Configure in Environment Variables tab":
+      "Configure in Environment Variables tab",
     "Save All Changes": "Save All Changes",
     "Configuration Saved": "Configuration Saved",
     "Configuration Status": "Configuration Status",
     "Refresh Status": "Refresh Status",
     "Runtime Configuration": "Runtime Configuration",
-    "Environment variables are loaded from": "Environment variables are loaded from",
+    "Environment variables are loaded from":
+      "Environment variables are loaded from",
     "file on startup": "file on startup",
-    "Changes made here take effect immediately but are not saved to file": "Changes made here take effect immediately but are not saved to file",
-    "On restart, values will be reloaded from": "On restart, values will be reloaded from",
+    "Changes made here take effect immediately but are not saved to file":
+      "Changes made here take effect immediately but are not saved to file",
+    "On restart, values will be reloaded from":
+      "On restart, values will be reloaded from",
     "Apply Environment Changes": "Apply Environment Changes",
     "Environment Updated!": "Environment Updated!",
-    "REQUIRED": "REQUIRED",
+    REQUIRED: "REQUIRED",
     "Error loading data": "Error loading data",
     "Failed to load settings": "Failed to load settings",
     "Failed to connect to backend": "Failed to connect to backend",
 
     // Dashboard Page
-    "Overview of your recent learning activities": "Overview of your recent learning activities",
+    "Overview of your recent learning activities":
+      "Overview of your recent learning activities",
     "Recent Activity": "Recent Activity",
     "Loading activities...": "Loading activities...",
     "No recent activity found": "No recent activity found",
-    "Start solving problems or generating questions!": "Start solving problems or generating questions!",
+    "Start solving problems or generating questions!":
+      "Start solving problems or generating questions!",
     "Problem Solved": "Problem Solved",
     "Question Generated": "Question Generated",
     "Research Report": "Research Report",
@@ -116,7 +124,7 @@ export const translations = {
     Success: "成功",
     "View All": "查看全部",
     Refresh: "刷新",
-    "Create": "创建",
+    Create: "创建",
 
     // Settings Page
     "System Settings": "系统设置",
@@ -154,11 +162,13 @@ export const translations = {
     "Runtime Configuration": "运行时配置",
     "Environment variables are loaded from": "环境变量从",
     "file on startup": "文件加载于启动时",
-    "Changes made here take effect immediately but are not saved to file": "此处的更改立即生效但不会保存到文件",
-    "On restart, values will be reloaded from": "重启后，值将从以下文件重新加载",
+    "Changes made here take effect immediately but are not saved to file":
+      "此处的更改立即生效但不会保存到文件",
+    "On restart, values will be reloaded from":
+      "重启后，值将从以下文件重新加载",
     "Apply Environment Changes": "应用环境变量更改",
     "Environment Updated!": "环境变量已更新！",
-    "REQUIRED": "必填",
+    REQUIRED: "必填",
     "Error loading data": "加载数据出错",
     "Failed to load settings": "加载设置失败",
     "Failed to connect to backend": "连接后端失败",

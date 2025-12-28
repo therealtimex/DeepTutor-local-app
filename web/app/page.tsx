@@ -234,7 +234,9 @@ export default function DashboardPage() {
                     <div className="text-2xl font-bold">
                       {notebookStats.total_notebooks}
                     </div>
-                    <div className="text-xs text-white/70">{t("Notebooks")}</div>
+                    <div className="text-xs text-white/70">
+                      {t("Notebooks")}
+                    </div>
                   </div>
                   <div className="bg-white/10 rounded-xl p-3">
                     <div className="text-2xl font-bold">

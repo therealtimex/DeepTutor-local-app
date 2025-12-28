@@ -153,11 +153,7 @@ def init_user_directories(project_root: Path | None = None) -> None:
         # Create settings.json if it doesn't exist (default to English)
         settings_file = user_data_dir / "settings.json"
         if not settings_file.exists():
-            initial_settings = {
-                "theme": "light",
-                "language": "en",
-                "output_language": "en"
-            }
+            initial_settings = {"theme": "light", "language": "en", "output_language": "en"}
             try:
                 with open(settings_file, "w", encoding="utf-8") as f:
                     json.dump(initial_settings, f, indent=2, ensure_ascii=False)
@@ -199,11 +195,7 @@ def init_user_directories(project_root: Path | None = None) -> None:
         # Ensure settings.json exists (default to English)
         settings_file = user_data_dir / "settings.json"
         if not settings_file.exists():
-            initial_settings = {
-                "theme": "light",
-                "language": "en",
-                "output_language": "en"
-            }
+            initial_settings = {"theme": "light", "language": "en", "output_language": "en"}
             try:
                 with open(settings_file, "w", encoding="utf-8") as f:
                     json.dump(initial_settings, f, indent=2, ensure_ascii=False)

@@ -210,7 +210,7 @@ def start_frontend():
     env["PYTHONUTF8"] = "1"
     if os.name == "nt":
         env["PYTHONLEGACYWINDOWSSTDIO"] = "0"
-    
+
     frontend_process = subprocess.Popen(
         f"npm run dev -- -p {frontend_port}",
         cwd=web_dir,
