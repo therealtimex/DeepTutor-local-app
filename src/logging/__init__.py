@@ -39,7 +39,6 @@ from .adapters import (
 from .config import (
     LoggingConfig,
     get_default_log_dir,
-    get_global_log_level,
     load_logging_config,
 )
 
@@ -59,7 +58,6 @@ from .logger import (
     LogLevel,
     get_logger,
     reset_logger,
-    set_default_service_prefix,
 )
 
 # Statistics tracking
@@ -77,7 +75,6 @@ __all__ = [
     "LogLevel",
     "get_logger",
     "reset_logger",
-    "set_default_service_prefix",
     "ConsoleFormatter",
     "FileFormatter",
     # Handlers
@@ -103,5 +100,4 @@ __all__ = [
     "LoggingConfig",
     "load_logging_config",
     "get_default_log_dir",
-    "get_global_log_level",
 ]

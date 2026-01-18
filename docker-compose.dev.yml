@@ -35,7 +35,8 @@ services:
 
     environment:
       - NODE_ENV=development
-      # Logging: Configure in config/main.yaml -> logging.level
+      # Enable more verbose logging in development
+      - RAG_TOOL_MODULE_LOG_LEVEL=${RAG_TOOL_MODULE_LOG_LEVEL:-DEBUG}
 
     # In development, we might want to see logs directly
     # Uncomment the following to disable log files and see everything in console

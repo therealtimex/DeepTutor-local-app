@@ -413,6 +413,7 @@ class KnowledgeBaseManager:
             files.extend(folder.glob(f"**/*{ext}"))
 
         # Generate folder ID
+        import hashlib
 
         folder_id = hashlib.md5(  # noqa: S324
             str(folder).encode(), usedforsecurity=False

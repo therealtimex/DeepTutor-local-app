@@ -4,14 +4,13 @@ Core Logger Implementation
 ==========================
 
 Unified logging with consistent format across all modules.
-Format: [LEVEL]   [Module]  Message
+Format: [Module] Symbol Message
 
 Example outputs:
-    [INFO]     [Solver]        Ready in 2.3s
-    [INFO]     [Research]      Starting deep research...
-    [INFO]     [Guide]         Compiling knowledge points
-    [INFO]     [Knowledge]     Indexed 150 documents
-    [ERROR]    [EmbeddingClient]  Embedding request failed
+    [Solver]    ✓ Ready in 2.3s
+    [Research]  → Starting deep research...
+    [Guide]     → Compiling knowledge points
+    [Knowledge] ✓ Indexed 150 documents
 """
 
 from datetime import datetime
@@ -22,26 +21,26 @@ from pathlib import Path
 import sys
 from typing import Any, List, Optional, Union
 
-from src.config.constants import PROJECT_ROOT
+from src.config.constants import LOG_SYMBOLS, PROJECT_ROOT
 
 
 class LogLevel(Enum):
-    """Log levels with standard tags"""
+    """Log levels with associated symbols"""
 
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    SUCCESS = "SUCCESS"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
-    PROGRESS = "PROGRESS"
-    COMPLETE = "COMPLETE"
+    DEBUG = ("DEBUG", "·")  # Dot for debug
+    INFO = ("INFO", "●")  # Circle for info
+    SUCCESS = ("SUCCESS", "✓")  # Checkmark for success
+    WARNING = ("WARNING", "⚠")  # Warning sign
+    ERROR = ("ERROR", "✗")  # X for error
+    CRITICAL = ("CRITICAL", "✗")  # X for critical
+    PROGRESS = ("INFO", "→")  # Arrow for progress
+    COMPLETE = ("INFO", "✓")  # Checkmark for completion
 
 
 class ConsoleFormatter(logging.Formatter):
     """
-    Clean console formatter with colors and standard level tags.
-    Format: [LEVEL]   [Module]  Message
+    Clean console formatter with colors and symbols.
+    Format: [Module]    Symbol Message
     """
 
     # ANSI color codes
@@ -52,46 +51,36 @@ class ConsoleFormatter(logging.Formatter):
         "WARNING": "\033[33m",  # Yellow
         "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[35m",  # Magenta
-        "PROGRESS": "\033[36m",  # Cyan
-        "COMPLETE": "\033[32m",  # Green
     }
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
 
-    def __init__(self, service_prefix: Optional[str] = None):
-        """
-        Initialize console formatter.
+    # Symbols for different log types
+    SYMBOLS = LOG_SYMBOLS
 
-        Args:
-            service_prefix: Optional service layer prefix (e.g., "Backend", "Frontend")
-        """
+    def __init__(self):
         super().__init__()
-        self.service_prefix = service_prefix
         # Check TTY status once during initialization
         stdout_tty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
         stderr_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
         self.use_colors = stdout_tty or stderr_tty
 
     def format(self, record: logging.LogRecord) -> str:
-        # Get display level (may be custom like SUCCESS, PROGRESS)
-        display_level = getattr(record, "display_level", record.levelname)
-
-        # Get module name
+        # Get module name (padded to 12 chars for alignment)
         module = getattr(record, "module_name", record.name)
-
-        # Build module tag [Module]
-        module_tag = f"[{module}]"
-
-        # Build level tag with colon
-        level_tag = f"{display_level}:"
-
+        module_padded = f"[{module}]".ljust(14)
+        symbol = getattr(record, "symbol", self.SYMBOLS.get(record.levelname, "●"))
         # Use pre-computed TTY status
-        if self.use_colors:
-            color = self.COLORS.get(display_level, self.COLORS["INFO"])
+        use_colors = self.use_colors
+        if use_colors:
+            # Get color
+            level = getattr(record, "display_level", record.levelname)
+            color = self.COLORS.get(level, self.COLORS["INFO"])
             dim = self.DIM
             reset = self.RESET
         else:
+            # No colors for non-interactive output
             color = ""
             dim = ""
             reset = ""
@@ -99,12 +88,8 @@ class ConsoleFormatter(logging.Formatter):
         # Format message
         message = record.getMessage()
 
-        # Build output: [Backend] [Module] INFO: Message (module first, then level)
-        if self.service_prefix:
-            service_tag = f"[{self.service_prefix}]"
-            return f"{dim}{service_tag}{reset} {dim}{module_tag}{reset} {color}{level_tag}{reset} {message}"
-        else:
-            return f"{dim}{module_tag}{reset} {color}{level_tag}{reset} {message}"
+        # Build output: [Module]    ● Message
+        return f"{dim}{module_padded}{reset} {color}{symbol}{reset} {message}"
 
 
 class FileFormatter(logging.Formatter):
@@ -136,7 +121,6 @@ class Logger:
     - File logging to user/logs/
     - WebSocket streaming support
     - Success/progress/complete convenience methods
-    - Optional service layer prefix (Backend/Frontend)
 
     Usage:
         logger = Logger("Solver")
@@ -152,7 +136,6 @@ class Logger:
         console_output: bool = True,
         file_output: bool = True,
         log_dir: Optional[Union[str, Path]] = None,
-        service_prefix: Optional[str] = None,
     ):
         """
         Initialize logger.
@@ -163,17 +146,14 @@ class Logger:
             console_output: Whether to output to console
             file_output: Whether to output to file
             log_dir: Log directory (default: ../user/logs/)
-            service_prefix: Optional service layer prefix (e.g., "Backend", "Frontend")
         """
         self.name = name
         self.level = getattr(logging, level.upper(), logging.INFO)
-        self.service_prefix = service_prefix
 
         # Create underlying Python logger
-        self.logger = logging.getLogger(f"deeptutor.{name}")
+        self.logger = logging.getLogger(f"ai_tutor.{name}")
         self.logger.setLevel(logging.DEBUG)  # Capture all, filter at handlers
         self.logger.handlers.clear()
-        self.logger.propagate = False  # Prevent duplicate logs from root logger
         # Setup log directory
         log_dir_path: Path
         if log_dir is None:
@@ -191,13 +171,13 @@ class Logger:
         if console_output:
             console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setLevel(self.level)
-            console_handler.setFormatter(ConsoleFormatter(service_prefix=service_prefix))
+            console_handler.setFormatter(ConsoleFormatter())
             self.logger.addHandler(console_handler)
 
         # File handler
         if file_output:
             timestamp = datetime.now().strftime("%Y%m%d")
-            log_file = log_dir_path / f"deeptutor_{timestamp}.log"
+            log_file = log_dir_path / f"ai_tutor_{timestamp}.log"
 
             file_handler = logging.FileHandler(log_file, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)  # Log everything to file
@@ -254,12 +234,14 @@ class Logger:
         self,
         level: int,
         message: str,
+        symbol: Optional[str] = None,
         display_level: Optional[str] = None,
         **kwargs,
     ):
         """Internal logging method with extra attributes."""
         extra = {
             "module_name": self.name,
+            "symbol": symbol,
             "display_level": display_level or logging.getLevelName(level),
         }
         # Extract standard logging parameters from kwargs
@@ -273,43 +255,45 @@ class Logger:
 
     # Standard logging methods
     def debug(self, message: str, **kwargs):
-        """Debug level log [DEBUG]"""
-        self._log(logging.DEBUG, message, **kwargs)
+        """Debug level log (·)"""
+        self._log(logging.DEBUG, message, symbol="·", **kwargs)
 
     def info(self, message: str, **kwargs):
-        """Info level log [INFO]"""
-        self._log(logging.INFO, message, **kwargs)
+        """Info level log (●)"""
+        self._log(logging.INFO, message, symbol="●", **kwargs)
 
     def warning(self, message: str, **kwargs):
-        """Warning level log [WARNING]"""
-        self._log(logging.WARNING, message, **kwargs)
+        """Warning level log (⚠)"""
+        self._log(logging.WARNING, message, symbol="⚠", **kwargs)
 
     def error(self, message: str, **kwargs):
-        """Error level log [ERROR]"""
-        self._log(logging.ERROR, message, **kwargs)
+        """Error level log (✗)"""
+        self._log(logging.ERROR, message, symbol="✗", **kwargs)
 
     def critical(self, message: str, **kwargs):
-        """Critical level log [CRITICAL]"""
-        self._log(logging.CRITICAL, message, **kwargs)
+        """Critical level log (✗)"""
+        self._log(logging.CRITICAL, message, symbol="✗", **kwargs)
 
     def exception(self, message: str, **kwargs):
         """Log exception with traceback"""
-        self.logger.exception(message, extra={"module_name": self.name, "display_level": "ERROR"})
+        self.logger.exception(
+            message, extra={"module_name": self.name, "symbol": "✗", "display_level": "ERROR"}
+        )
 
     # Convenience methods
     def success(self, message: str, elapsed: Optional[float] = None, **kwargs):
-        """Success log [SUCCESS]"""
+        """Success log with checkmark (✓)"""
         if elapsed is not None:
             message = f"{message} in {elapsed:.1f}s"
-        self._log(logging.INFO, message, display_level="SUCCESS", **kwargs)
+        self._log(logging.INFO, message, symbol="✓", display_level="SUCCESS", **kwargs)
 
     def progress(self, message: str, **kwargs):
-        """Progress log [PROGRESS]"""
-        self._log(logging.INFO, message, display_level="PROGRESS", **kwargs)
+        """Progress log with arrow (→)"""
+        self._log(logging.INFO, message, symbol="→", **kwargs)
 
     def complete(self, message: str, **kwargs):
-        """Completion log [COMPLETE]"""
-        self._log(logging.INFO, message, display_level="COMPLETE", **kwargs)
+        """Completion log with checkmark (✓)"""
+        self._log(logging.INFO, message, symbol="✓", display_level="SUCCESS", **kwargs)
 
     def stage(self, stage_name: str, status: str = "start", detail: Optional[str] = None):
         """
@@ -320,16 +304,15 @@ class Logger:
             status: One of "start", "running", "complete", "skip", "error"
             detail: Optional detail message
         """
-        # Map status to display level
-        status_to_level = {
-            "start": "PROGRESS",
-            "running": "INFO",
-            "complete": "SUCCESS",
-            "skip": "INFO",
-            "error": "ERROR",
-            "warning": "WARNING",
+        symbols = {
+            "start": "▶",
+            "running": "●",
+            "complete": "✓",
+            "skip": "○",
+            "error": "✗",
+            "warning": "⚠",
         }
-        display_level = status_to_level.get(status, "INFO")
+        symbol = symbols.get(status, "●")
 
         message = f"{stage_name}"
         if status == "complete":
@@ -347,7 +330,10 @@ class Logger:
             message += f" | {detail}"
 
         level = logging.ERROR if status == "error" else logging.INFO
-        self._log(level, message, display_level=display_level)
+        display_level = (
+            "ERROR" if status == "error" else ("SUCCESS" if status == "complete" else "INFO")
+        )
+        self._log(level, message, symbol=symbol, display_level=display_level)
 
     def tool_call(
         self, tool_name: str, status: str = "success", elapsed_ms: Optional[float] = None, **kwargs
@@ -360,6 +346,7 @@ class Logger:
             status: "success", "error", or "running"
             elapsed_ms: Execution time in milliseconds
         """
+        symbol = "✓" if status == "success" else ("✗" if status == "error" else "●")
         display_level = (
             "SUCCESS" if status == "success" else ("ERROR" if status == "error" else "INFO")
         )
@@ -373,6 +360,7 @@ class Logger:
         self._log(
             logging.INFO if status != "error" else logging.ERROR,
             message,
+            symbol=symbol,
             display_level=display_level,
         )
 
@@ -406,7 +394,7 @@ class Logger:
             parts.append(f"{elapsed:.2f}s")
 
         message = " | ".join(parts)
-        self._log(logging.DEBUG, message)
+        self._log(logging.DEBUG, message, symbol="◆")
 
     def separator(self, char: str = "─", length: int = 50):
         """Print a separator line"""
@@ -432,6 +420,7 @@ class Logger:
             status: "success", "error", or "running"
             elapsed_ms: Execution time in milliseconds
         """
+        symbol = "✓" if status == "success" else ("✗" if status == "error" else "●")
         display_level = (
             "SUCCESS" if status == "success" else ("ERROR" if status == "error" else "INFO")
         )
@@ -446,6 +435,7 @@ class Logger:
         self._log(
             logging.INFO if status != "error" else logging.ERROR,
             message,
+            symbol=symbol,
             display_level=display_level,
         )
 
@@ -519,20 +509,22 @@ class Logger:
             level: Log level ("DEBUG" for full details, "INFO" for summary)
         """
         # Build header
-        header_parts = ["LLM-CALL"]
+        header_parts = ["[LLM-CALL]"]
         if agent_name:
-            header_parts.append(f"Agent: {agent_name}")
-        header_parts.append(f"Stage: {stage}")
-        header_parts.append(f"Model: {model}")
-        header = " | ".join(header_parts)
+            header_parts.append(f"[Agent: {agent_name}]")
+        header_parts.append(f"[Stage: {stage}]")
+        header_parts.append(f"[Model: {model}]")
+        header = " ".join(header_parts)
 
         # Log at appropriate level
         log_level = logging.DEBUG if level == "DEBUG" else logging.INFO
 
         if level == "DEBUG":
             # Full detailed output
-            self._log(log_level, header)
-            self._log(log_level, "--- Input ---")
+            self._log(log_level, header, symbol="◆")
+            self._log(
+                log_level, "┌─ Input ──────────────────────────────────────────────", symbol=" "
+            )
             self._log(
                 log_level,
                 (
@@ -540,6 +532,7 @@ class Logger:
                     if len(system_prompt) > 200
                     else f"System: {system_prompt}"
                 ),
+                symbol=" ",
             )
             self._log(
                 log_level,
@@ -548,9 +541,20 @@ class Logger:
                     if len(user_prompt) > 500
                     else f"User: {user_prompt}"
                 ),
+                symbol=" ",
             )
-            self._log(log_level, "--- Output ---")
-            self._log(log_level, f"{response[:1000]}..." if len(response) > 1000 else response)
+            self._log(
+                log_level, "└──────────────────────────────────────────────────────", symbol=" "
+            )
+            self._log(
+                log_level, "┌─ Output ─────────────────────────────────────────────", symbol=" "
+            )
+            self._log(
+                log_level, f"{response[:1000]}..." if len(response) > 1000 else response, symbol=" "
+            )
+            self._log(
+                log_level, "└──────────────────────────────────────────────────────", symbol=" "
+            )
 
             # Token and cost info
             token_info_parts = []
@@ -564,17 +568,17 @@ class Logger:
                 token_info_parts.append(f"cost=${cost:.6f}")
 
             if token_info_parts:
-                self._log(log_level, f"Tokens: {' '.join(token_info_parts)}")
+                self._log(log_level, f"[Tokens: {' '.join(token_info_parts)}]", symbol=" ")
         else:
             # Summary output
             token_info = ""
             if input_tokens is not None and output_tokens is not None:
-                token_info = f" | Tokens: in={input_tokens}, out={output_tokens}, total={input_tokens + output_tokens}"
+                token_info = f" [Tokens: in={input_tokens}, out={output_tokens}, total={input_tokens + output_tokens}]"
             if cost is not None:
-                token_info += f" | Cost: ${cost:.6f}"
+                token_info += f" [Cost: ${cost:.6f}]"
 
             message = f"{header}{token_info}"
-            self._log(log_level, message)
+            self._log(log_level, message, symbol="◆")
 
     def update_token_stats(self, summary: dict[str, Any]):
         """Update token statistics (for display manager compatibility)"""
@@ -605,99 +609,67 @@ class Logger:
             self.logger.removeHandler(handler)
 
 
-# Global logger registry - key is tuple of (name, level, console_output, file_output, log_dir, service_prefix)
-_loggers: dict[tuple[str, str, bool, bool, Optional[str], Optional[str]], "Logger"] = {}
-
-# Global default service prefix (can be set at application startup)
-_default_service_prefix: Optional[str] = None
-
-
-def set_default_service_prefix(prefix: Optional[str]):
-    """
-    Set the default service prefix for all new loggers.
-
-    Call this at application startup to set a global prefix like "Backend" or "Frontend".
-
-    Args:
-        prefix: Service prefix (e.g., "Backend", "Frontend") or None to disable
-    """
-    global _default_service_prefix
-    _default_service_prefix = prefix
+# Global logger registry - key is tuple of (name, level, console_output, file_output, log_dir)
+_loggers: dict[tuple[str, str, bool, bool, Optional[str]], "Logger"] = {}
 
 
 def get_logger(
     name: str = "Main",
-    level: Optional[str] = None,
+    level: str = "INFO",
     console_output: bool = True,
     file_output: bool = True,
     log_dir: Optional[str] = None,
-    service_prefix: Optional[str] = None,
 ) -> Logger:
     """
     Get or create a logger instance.
 
     Args:
         name: Module name
-        level: Log level (if None, uses global level from config/main.yaml)
+        level: Log level
         console_output: Enable console output
         file_output: Enable file output
         log_dir: Log directory (if None, will try to load from config/main.yaml)
-        service_prefix: Optional service prefix (if None, uses default set by set_default_service_prefix)
 
     Returns:
         Logger instance
     """
-    global _loggers, _default_service_prefix
+    global _loggers
 
-    # Use default service prefix if not explicitly provided
-    effective_service_prefix = (
-        service_prefix if service_prefix is not None else _default_service_prefix
-    )
-
-    # Load config for log_dir and level
-    effective_level = level
-    if log_dir is None or effective_level is None:
+    # If log_dir not provided, try to load from config
+    if log_dir is None:
         try:
             from src.services.config import get_path_from_config, load_config_with_main
 
-            config = load_config_with_main("solve_config.yaml", PROJECT_ROOT)
-
-            # Get log_dir from config
-            if log_dir is None:
-                log_dir = get_path_from_config(config, "user_log_dir") or config.get(
-                    "paths", {}
-                ).get("user_log_dir")
-                if log_dir:
-                    log_dir_path = Path(log_dir)
-                    if not log_dir_path.is_absolute():
-                        log_dir_str = str(log_dir_path).lstrip("./")
-                        log_dir = str(PROJECT_ROOT / log_dir_str)
-                    else:
-                        log_dir = str(log_dir_path)
-
-            # Get level from config (unified global level)
-            if effective_level is None:
-                from .config import get_global_log_level
-
-                effective_level = get_global_log_level()
+            # Use resolve() to get absolute path, ensuring correct project root regardless of working directory
+            config = load_config_with_main(
+                "solve_config.yaml", PROJECT_ROOT
+            )  # Use any config to get main.yaml
+            log_dir = get_path_from_config(config, "user_log_dir") or config.get("paths", {}).get(
+                "user_log_dir"
+            )
+            if log_dir:
+                # Convert relative path to absolute based on project root
+                log_dir_path = Path(log_dir)
+                if not log_dir_path.is_absolute():
+                    # Remove leading ./ if present
+                    log_dir_str = str(log_dir_path).lstrip("./")
+                    log_dir = str(PROJECT_ROOT / log_dir_str)
+                else:
+                    log_dir = str(log_dir_path)
         except Exception:
+            # Fallback to default
             pass
-
-    # Use DEBUG as ultimate fallback
-    if effective_level is None:
-        effective_level = "DEBUG"
-
     log_dir_key = str(log_dir) if log_dir is not None else None
-    cache_key = (name, effective_level, console_output, file_output, log_dir_key, effective_service_prefix)
+    # Create a cache key that includes configuration, using a normalized log_dir
+    cache_key = (name, level, console_output, file_output, log_dir_key)
 
     if cache_key not in _loggers:
         _loggers[cache_key] = Logger(
             name=name,
-            level=effective_level,
+            level=level,
             console_output=console_output,
             file_output=file_output,
             log_dir=log_dir,
-            service_prefix=effective_service_prefix,
         )
 
     return _loggers[cache_key]

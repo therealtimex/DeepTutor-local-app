@@ -21,15 +21,13 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 from dotenv import load_dotenv
 
-# Load LLM config early to ensure OPENAI_API_KEY env var is set before LightRAG imports
-# This is critical because LightRAG reads os.environ["OPENAI_API_KEY"] directly
-from src.services.llm.config import get_llm_config as _early_config_load  # noqa: F401
-
 # Attempt imports for dynamic dependencies
 try:
+    from lightrag.llm.openai import openai_complete_if_cache
     from lightrag.utils import EmbeddingFunc
 except ImportError:
-    # This will be caught during runtime if needed
+    # These will be caught during runtime if needed
+    openai_complete_if_cache = None
     EmbeddingFunc = None
 
 # Type hinting support for dynamic imports
@@ -221,16 +219,99 @@ class DocumentAdder:
         if self.progress_tracker:
             from src.knowledge.progress_tracker import ProgressStage
 
-        # Use unified LLM client from src/services/llm
-        from src.services.llm import get_llm_client
+        self.llm_cfg = get_llm_config()
+        model = self.llm_cfg.model
+        api_key = self.api_key or self.llm_cfg.api_key
+        base_url = self.base_url or self.llm_cfg.base_url
 
-        llm_client = get_llm_client()
-        self.llm_cfg = llm_client.config
+        # LLM Function Wrapper
+        def llm_model_func(prompt, system_prompt=None, history_messages=None, **kwargs):
+            if history_messages is None:
+                history_messages = []
+            return openai_complete_if_cache(
+                model,
+                prompt,
+                system_prompt=system_prompt,
+                history_messages=history_messages,
+                api_key=api_key,
+                base_url=base_url,
+                **kwargs,
+            )
 
-        # Get model functions from unified LLM client
-        # These handle all provider differences (OpenAI, Anthropic, Azure, local, etc.)
-        llm_model_func = llm_client.get_model_func()
-        vision_model_func = llm_client.get_vision_model_func()
+        # Vision Function Wrapper - Robust history handling
+        def vision_model_func(
+            prompt,
+            system_prompt=None,
+            history_messages=None,
+            image_data=None,
+            messages=None,
+            **kwargs,
+        ):
+            if history_messages is None:
+                history_messages = []
+            # If pre-formatted messages are provided, sanitize them
+            if messages:
+                safe_messages = self._filter_valid_messages(messages)
+                return openai_complete_if_cache(
+                    model,
+                    prompt="",
+                    messages=safe_messages,
+                    api_key=api_key,
+                    base_url=base_url,
+                    **kwargs,
+                )
+
+            # --- Construct Message History ---
+            current_messages = []
+
+            # 1. Add System Prompt (if provided)
+            if system_prompt:
+                current_messages.append({"role": "system", "content": system_prompt})
+
+            # 2. Add History (Filtering out conflicting system prompts)
+            if history_messages:
+                # Filter out system messages from history to avoid duplicates/conflicts with the new system_prompt
+                filtered_history = [
+                    msg
+                    for msg in history_messages
+                    if isinstance(msg, dict) and msg.get("role") != "system"
+                ]
+                current_messages.extend(filtered_history)
+
+            # 3. Construct New User Message
+            user_content: List[Dict[str, Any]] = [{"type": "text", "text": prompt}]
+            if image_data:
+                user_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+                    }
+                )
+
+            # 4. Merge Logic: Avoid back-to-back user messages
+            if current_messages and current_messages[-1].get("role") == "user":
+                last_msg = current_messages[-1]
+                # If last content is string, convert to list format first
+                if isinstance(last_msg["content"], str):
+                    last_msg["content"] = [{"type": "text", "text": last_msg["content"]}]
+
+                # Append new content blocks
+                if isinstance(last_msg["content"], list):
+                    last_msg["content"].extend(user_content)
+                else:
+                    # Fallback if structure is unexpected, just append new message
+                    current_messages.append({"role": "user", "content": user_content})
+            else:
+                current_messages.append({"role": "user", "content": user_content})
+
+            return openai_complete_if_cache(
+                model,
+                prompt="",
+                messages=current_messages,
+                api_key=api_key,
+                base_url=base_url,
+                **kwargs,
+            )
 
         # Embedding Setup
         reset_embedding_client()
@@ -383,50 +464,36 @@ class DocumentAdder:
         ]
 
     async def fix_structure(self):
-        """
-        Clean up parser output directories after image migration.
+        """Robustly moves nested outputs and cleans up."""
+        logger.info("Organizing storage structure...")
 
-        NOTE: Image migration and path updates are now handled by the RAG pipeline
-        (raganything.py / raganything_docling.py) BEFORE RAG insertion. This ensures
-        RAG stores the correct canonical image paths (kb/images/) from the start.
-
-        This method now only cleans up empty temporary parser output directories.
-        """
-        logger.info("Checking for leftover parser output directories...")
-
-        # Support both 'auto' (MinerU) and 'docling' parser output directories
-        parser_subdirs = ["auto", "docling"]
-        cleaned_count = 0
-
-        for doc_dir in list(self.content_list_dir.glob("*")):
+        # 1. Identify moves
+        moves = []
+        for doc_dir in self.content_list_dir.glob("*"):
             if not doc_dir.is_dir():
                 continue
 
-            for parser_subdir in parser_subdirs:
-                subdir = doc_dir / parser_subdir
-                if subdir.exists():
-                    try:
-                        # Check if directory is empty or only contains empty subdirs
-                        has_content = any(
-                            f.is_file() or (f.is_dir() and any(f.iterdir()))
-                            for f in subdir.iterdir()
-                        )
+            # Content List
+            json_src = next(doc_dir.glob("auto/*_content_list.json"), None)
+            if json_src:
+                moves.append((json_src, self.content_list_dir / f"{doc_dir.name}.json"))
 
-                        if not has_content:
-                            await self._run_in_executor(shutil.rmtree, subdir)
-                            cleaned_count += 1
-                    except Exception as e:
-                        logger.debug(f"Could not clean up {subdir}: {e}")
+            # Images
+            for img in doc_dir.glob("auto/images/*"):
+                moves.append((img, self.images_dir / img.name))
 
-            # Remove doc_dir if it's now empty
-            try:
-                if doc_dir.exists() and not any(doc_dir.iterdir()):
-                    doc_dir.rmdir()
-            except Exception:
-                pass
+        # 2. Execute moves
+        for src, dest in moves:
+            if src.exists():
+                await self._run_in_executor(shutil.copy2, src, dest)
 
-        if cleaned_count > 0:
-            logger.info(f"Cleaned up {cleaned_count} empty parser directories")
+        # 3. Safe Cleanup: Only delete directories we actually processed
+        for doc_dir in self.content_list_dir.glob("*"):
+            if doc_dir.is_dir():
+                # Safety check: only delete if it looks like a parser output (has 'auto' subdir)
+                # This prevents wiping manual user folders in content_list_dir
+                if (doc_dir / "auto").exists():
+                    await self._run_in_executor(shutil.rmtree, doc_dir, ignore_errors=True)
 
     def extract_numbered_items_for_new_docs(self, processed_files, batch_size=20):
         if not processed_files:

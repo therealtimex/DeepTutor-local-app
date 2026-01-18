@@ -4,12 +4,12 @@ LLM Stats Tracker
 =================
 
 Simple utility for tracking LLM token usage and costs across all modules.
-Outputs summary via the unified logging system.
+Outputs summary to terminal at the end of processing.
 
 Usage:
     from src.logging import LLMStats
 
-    stats = LLMStats("Solver")
+    stats = LLMStats()
 
     # After each LLM call:
     stats.add_call(
@@ -19,15 +19,12 @@ Usage:
     )
 
     # At the end:
-    stats.log_summary()  # Uses logging system
+    stats.print_summary()
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
-
-if TYPE_CHECKING:
-    from ..logger import Logger
+from typing import Any, Optional
 
 # Model pricing per 1K tokens (USD)
 MODEL_PRICING = {
@@ -153,42 +150,25 @@ class LLMStats:
             "cost_usd": self.total_cost,
         }
 
-    def log_summary(self, logger: Optional["Logger"] = None):
-        """
-        Log summary using the unified logging system.
-
-        Args:
-            logger: Optional Logger instance. If None, creates one using module_name.
-        """
+    def print_summary(self):
+        """Print summary to terminal."""
         if len(self.calls) == 0:
             return
 
-        # Import here to avoid circular imports
-        from ..logger import get_logger
-
-        if logger is None:
-            logger = get_logger(self.module_name)
-
         total_tokens = self.total_prompt_tokens + self.total_completion_tokens
 
-        logger.info("=" * 60)
-        logger.info(f"LLM Usage Summary for {self.module_name}")
-        logger.info("=" * 60)
-        logger.info(f"Model       : {self.model_used or 'Unknown'}")
-        logger.info(f"API Calls   : {len(self.calls)}")
-        logger.info(
-            f"Tokens      : {total_tokens:,} (Input: {self.total_prompt_tokens:,}, Output: {self.total_completion_tokens:,})"
+        print()
+        print("=" * 60)
+        print(f"📊 [{self.module_name}] LLM Usage Summary")
+        print("=" * 60)
+        print(f"  Model       : {self.model_used or 'Unknown'}")
+        print(f"  API Calls   : {len(self.calls)}")
+        print(
+            f"  Tokens      : {total_tokens:,} (Input: {self.total_prompt_tokens:,}, Output: {self.total_completion_tokens:,})"
         )
-        logger.info(f"Cost        : ${self.total_cost:.6f} USD")
-        logger.info("=" * 60)
-
-    def print_summary(self):
-        """
-        Print summary to terminal.
-
-        Deprecated: Use log_summary() instead for consistent logging.
-        """
-        self.log_summary()
+        print(f"  Cost        : ${self.total_cost:.6f} USD")
+        print("=" * 60)
+        print()
 
     def reset(self):
         """Reset all statistics."""

@@ -1282,10 +1282,7 @@ export default function KnowledgePage() {
                     <>
                       <option value="llamaindex">LlamaIndex</option>
                       <option value="lightrag">LightRAG</option>
-                      <option value="raganything">RAG-Anything (MinerU)</option>
-                      <option value="raganything_docling">
-                        RAG-Anything (Docling)
-                      </option>
+                      <option value="raganything">RAG-Anything</option>
                     </>
                   )}
                 </select>
@@ -1306,9 +1303,7 @@ export default function KnowledgePage() {
                         lightrag:
                           "Lightweight knowledge graph retrieval, fast processing of text documents.",
                         raganything:
-                          "Multimodal document processing with MinerU parser. Best for academic PDFs with complex equations.",
-                        raganything_docling:
-                          "Multimodal document processing with Docling parser. Better for Office documents and HTML.",
+                          "Multimodal document processing with chart and formula extraction, builds knowledge graphs.",
                       };
                       return (
                         fallbackDescriptions[ragProvider] ||
@@ -1495,10 +1490,7 @@ export default function KnowledgePage() {
                     <>
                       <option value="llamaindex">LlamaIndex</option>
                       <option value="lightrag">LightRAG</option>
-                      <option value="raganything">RAG-Anything (MinerU)</option>
-                      <option value="raganything_docling">
-                        RAG-Anything (Docling)
-                      </option>
+                      <option value="raganything">RAG-Anything</option>
                     </>
                   )}
                 </select>
@@ -1518,9 +1510,7 @@ export default function KnowledgePage() {
                         lightrag:
                           "Lightweight knowledge graph retrieval, fast processing of text documents.",
                         raganything:
-                          "Multimodal document processing with MinerU parser. Best for academic PDFs with complex equations.",
-                        raganything_docling:
-                          "Multimodal document processing with Docling parser. Better for Office documents and HTML.",
+                          "Multimodal document processing with chart and formula extraction, builds knowledge graphs.",
                       };
                       return (
                         fallbackDescriptions[ragProvider] ||

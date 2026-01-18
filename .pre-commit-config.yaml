@@ -89,6 +89,16 @@ repos:
         exclude: ^tests/
 
   # ============================================
+  # Docstring coverage checking
+  # ============================================
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        args: [-v, -q, --exclude=tests/, --exclude=scripts/, --ignore-init-method, --ignore-private]
+        pass_filenames: false
+
+  # ============================================
   # Type checking
   # ============================================
   # Type checking - currently relaxed due to gradual type adoption

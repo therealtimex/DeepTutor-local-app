@@ -274,58 +274,80 @@ class KnowledgeBaseInitializer:
 
     async def fix_structure(self):
         """
-        Clean up parser output directories after image migration.
-
-        NOTE: Image migration and path updates are now handled by the RAG pipeline
-        (raganything.py / raganything_docling.py) BEFORE RAG insertion. This ensures
-        RAG stores the correct canonical image paths (kb/images/) from the start.
-
-        This method now only:
-        1. Checks if there are any leftover nested directories to clean up
-        2. Removes empty temporary parser output directories
-
-        Supports both 'auto' (MinerU) and 'docling' parser output directories.
+        Fix the nested structure created by process_document_complete.
+        Flattens content_list directories and moves images to the correct location.
         """
-        logger.info("\nChecking for leftover parser output directories...")
+        logger.info("\nFixing directory structure...")
 
-        # Support both 'auto' (MinerU) and 'docling' parser output directories
-        parser_subdirs = ["auto", "docling"]
-        cleaned_count = 0
-
-        # Find and remove empty parser output directories
-        for doc_dir in list(self.content_list_dir.glob("*")):
+        # Find nested content lists
+        content_list_moves = []
+        for doc_dir in self.content_list_dir.glob("*"):
             if not doc_dir.is_dir():
                 continue
 
-            for parser_subdir in parser_subdirs:
-                subdir = doc_dir / parser_subdir
-                if subdir.exists():
-                    try:
-                        # Check if directory is empty or only contains empty subdirs
-                        has_content = any(
-                            f.is_file() or (f.is_dir() and any(f.iterdir()))
-                            for f in subdir.iterdir()
-                        )
+            auto_dir = doc_dir / "auto"
+            if not auto_dir.exists():
+                continue
 
-                        if not has_content:
-                            shutil.rmtree(subdir)
-                            cleaned_count += 1
-                            logger.debug(f"  Removed empty directory: {subdir}")
-                    except Exception as e:
-                        logger.debug(f"  Could not clean up {subdir}: {e}")
+            # Find the _content_list.json file
+            for json_file in auto_dir.glob("*_content_list.json"):
+                target_file = self.content_list_dir / f"{doc_dir.name}.json"
+                content_list_moves.append((json_file, target_file))
 
-            # Remove doc_dir if it's now empty
+        # Move content list files
+        for source, target in content_list_moves:
             try:
-                if doc_dir.exists() and not any(doc_dir.iterdir()):
-                    doc_dir.rmdir()
-                    logger.debug(f"  Removed empty directory: {doc_dir}")
-            except Exception:
-                pass
+                shutil.copy2(source, target)
+                logger.info(f"  ✓ Moved: {source.name} -> {target.name}")
+            except Exception as e:
+                logger.error(f"  ✗ Error moving {source.name}: {e!s}")
 
-        if cleaned_count > 0:
-            logger.info(f"✓ Cleaned up {cleaned_count} empty parser directories")
-        else:
-            logger.info("✓ No cleanup needed (structure already organized)")
+        # Find and move nested images
+        for doc_dir in self.content_list_dir.glob("*"):
+            if not doc_dir.is_dir():
+                continue
+
+            auto_dir = doc_dir / "auto"
+            if not auto_dir.exists():
+                continue
+
+            images_dir = auto_dir / "images"
+            if images_dir.exists() and images_dir.is_dir():
+                image_count = 0
+                # Ensure target directory exists
+                self.images_dir.mkdir(parents=True, exist_ok=True)
+
+                for img_file in images_dir.glob("*"):
+                    if img_file.is_file() and img_file.exists():
+                        target_img = self.images_dir / img_file.name
+                        if not target_img.exists():
+                            try:
+                                # Ensure source file exists
+                                if not img_file.exists():
+                                    logger.warning(f"  ⚠ Source image not found: {img_file}")
+                                    continue
+                                shutil.copy2(img_file, target_img)
+                                image_count += 1
+                            except FileNotFoundError:
+                                logger.error(
+                                    f"  ✗ Error moving image {img_file.name}: Source file not found: {img_file}"
+                                )
+                            except Exception as e:
+                                logger.error(f"  ✗ Error moving image {img_file.name}: {e!s}")
+
+                if image_count > 0:
+                    logger.info(f"  ✓ Moved {image_count} images from {doc_dir.name}/auto/images/")
+
+        # Clean up nested directories
+        for doc_dir in self.content_list_dir.glob("*"):
+            if doc_dir.is_dir():
+                try:
+                    shutil.rmtree(doc_dir)
+                    logger.info(f"  ✓ Cleaned up: {doc_dir.name}/")
+                except Exception as e:
+                    logger.error(f"  ✗ Error removing {doc_dir.name}: {e!s}")
+
+        logger.info("✓ Structure fixed!")
 
     def extract_numbered_items(self, batch_size: int = 20):
         """

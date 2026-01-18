@@ -57,7 +57,8 @@ services:
       # Web Search Configuration (Optional)
       - SEARCH_PROVIDER=${SEARCH_PROVIDER:-perplexity}
       - SEARCH_API_KEY=${SEARCH_API_KEY:-}
-      # Logging: Configure in config/main.yaml -> logging.level
+      # Logging Configuration
+      - RAG_TOOL_MODULE_LOG_LEVEL=${RAG_TOOL_MODULE_LOG_LEVEL:-INFO}
       # ============================================
       # Service Ports Configuration
       # ============================================
