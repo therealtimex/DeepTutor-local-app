@@ -85,6 +85,17 @@ deeptutor = "src.api.run_server:main"
 where = ["."]
 include = ["src*", "realtimex_deeptutor*"]
 
+[tool.setuptools.package-data]
+# Include non-Python files in the package distribution
+src = [
+    "agents/*/prompts/**/*.yaml",
+    "agents/*/prompts/**/*.yml",
+]
+"*" = [
+    "*.yaml",
+    "*.yml",
+]
+
 # ============================================
 # Black code formatter configuration
 # ============================================
