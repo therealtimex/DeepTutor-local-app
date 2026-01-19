@@ -3,27 +3,90 @@ Pipeline Factory
 ================
 
 Factory for creating and managing RAG pipelines.
+
+LightRAG is the default pipeline (always available).
+RAGAnything and LlamaIndex are optional (require extra dependencies).
 """
 
+import logging
 from typing import Callable, Dict, List, Optional
 
-from .pipelines import lightrag, llamaindex
-from .pipelines.raganything import RAGAnythingPipeline
+from .pipelines import lightrag
 
-# Pipeline registry
+logger = logging.getLogger(__name__)
+
+# Pipeline registry - start with always-available pipelines
 _PIPELINES: Dict[str, Callable] = {
-    "raganything": RAGAnythingPipeline,  # Full multimodal: MinerU parser, deep analysis (slow, thorough)
-    "lightrag": lightrag.LightRAGPipeline,  # Knowledge graph: PDFParser, fast text-only (medium speed)
-    "llamaindex": llamaindex.LlamaIndexPipeline,  # Vector-only: Simple chunking, fast (fastest)
+    "lightrag": lightrag.LightRAGPipeline,  # Knowledge graph: PDFParser, fast text-only (default)
 }
 
+# Pipeline metadata for list_pipelines()
+_PIPELINE_INFO: Dict[str, Dict[str, str]] = {
+    "lightrag": {
+        "id": "lightrag",
+        "name": "LightRAG",
+        "description": "Lightweight knowledge graph retrieval, fast processing of text documents.",
+        "available": True,
+    },
+}
 
-def get_pipeline(name: str = "raganything", kb_base_dir: Optional[str] = None, **kwargs):
+# Try to register optional pipelines
+def _register_optional_pipelines():
+    """Register pipelines that have optional dependencies."""
+    global _PIPELINES, _PIPELINE_INFO
+    
+    # Try RAGAnything (requires raganything package)
+    try:
+        from .pipelines.raganything import RAGAnythingPipeline
+        _PIPELINES["raganything"] = RAGAnythingPipeline
+        _PIPELINE_INFO["raganything"] = {
+            "id": "raganything",
+            "name": "RAG-Anything",
+            "description": "Multimodal document processing with chart and formula extraction.",
+            "available": True,
+        }
+        logger.debug("RAGAnything pipeline registered")
+    except ImportError as e:
+        _PIPELINE_INFO["raganything"] = {
+            "id": "raganything",
+            "name": "RAG-Anything",
+            "description": "Multimodal document processing (requires: pip install realtimex-deeptutor[raganything])",
+            "available": False,
+        }
+        logger.debug(f"RAGAnything not available: {e}")
+    
+    # Try LlamaIndex (requires llama-index package)
+    try:
+        from .pipelines import llamaindex
+        _PIPELINES["llamaindex"] = llamaindex.LlamaIndexPipeline
+        _PIPELINE_INFO["llamaindex"] = {
+            "id": "llamaindex",
+            "name": "LlamaIndex",
+            "description": "Pure vector retrieval, fastest processing speed.",
+            "available": True,
+        }
+        logger.debug("LlamaIndex pipeline registered")
+    except ImportError as e:
+        _PIPELINE_INFO["llamaindex"] = {
+            "id": "llamaindex",
+            "name": "LlamaIndex",
+            "description": "Vector retrieval (requires: pip install realtimex-deeptutor[llamaindex])",
+            "available": False,
+        }
+        logger.debug(f"LlamaIndex not available: {e}")
+
+
+# Register optional pipelines at module load
+_register_optional_pipelines()
+
+
+def get_pipeline(name: str = "lightrag", kb_base_dir: Optional[str] = None, **kwargs):
     """
     Get a pre-configured pipeline by name.
 
     Args:
-        name: Pipeline name (raganything, lightrag, llamaindex, academic)
+        name: Pipeline name (lightrag, raganything, llamaindex)
+              Default is 'lightrag' (always available).
         kb_base_dir: Base directory for knowledge bases (passed to all pipelines)
         **kwargs: Additional arguments passed to pipeline constructor
 
@@ -31,10 +94,17 @@ def get_pipeline(name: str = "raganything", kb_base_dir: Optional[str] = None, *
         Pipeline instance
 
     Raises:
-        ValueError: If pipeline name is not found
+        ValueError: If pipeline name is not found or not available
     """
     if name not in _PIPELINES:
         available = list(_PIPELINES.keys())
+        # Check if it's a known but unavailable pipeline
+        if name in _PIPELINE_INFO:
+            info = _PIPELINE_INFO[name]
+            raise ValueError(
+                f"Pipeline '{name}' is not available. {info['description']}. "
+                f"Available pipelines: {available}"
+            )
         raise ValueError(f"Unknown pipeline: {name}. Available: {available}")
 
     factory = _PIPELINES[name]
@@ -55,30 +125,31 @@ def get_pipeline(name: str = "raganything", kb_base_dir: Optional[str] = None, *
         return factory(kb_base_dir=kb_base_dir)
 
 
-def list_pipelines() -> List[Dict[str, str]]:
+def list_pipelines(include_unavailable: bool = False) -> List[Dict[str, str]]:
     """
     List available pipelines.
+
+    Args:
+        include_unavailable: If True, also include pipelines that aren't installed
 
     Returns:
         List of pipeline info dictionaries
     """
-    return [
-        {
-            "id": "llamaindex",
-            "name": "LlamaIndex",
-            "description": "Pure vector retrieval, fastest processing speed.",
-        },
-        {
-            "id": "lightrag",
-            "name": "LightRAG",
-            "description": "Lightweight knowledge graph retrieval, fast processing of text documents.",
-        },
-        {
-            "id": "raganything",
-            "name": "RAG-Anything",
-            "description": "Multimodal document processing with chart and formula extraction, builds knowledge graphs.",
-        },
-    ]
+    result = []
+    # Order: lightrag first (default), then others
+    order = ["lightrag", "raganything", "llamaindex"]
+    
+    for pipeline_id in order:
+        if pipeline_id in _PIPELINE_INFO:
+            info = _PIPELINE_INFO[pipeline_id]
+            if include_unavailable or info.get("available", False):
+                result.append({
+                    "id": info["id"],
+                    "name": info["name"],
+                    "description": info["description"],
+                })
+    
+    return result
 
 
 def register_pipeline(name: str, factory: Callable):

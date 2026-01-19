@@ -176,7 +176,7 @@ class KnowledgeBaseInitializer:
     async def process_documents(self):
         """Process documents using RAGService with dynamic provider selection"""
         # Use the provider passed during initialization, or fallback to env var
-        provider = self.rag_provider or os.getenv("RAG_PROVIDER", "raganything")
+        provider = self.rag_provider or os.getenv("RAG_PROVIDER", "lightrag")
         logger.info(f"Processing documents with RAG provider: {provider}")
 
         self.progress_tracker.update(
@@ -455,7 +455,7 @@ class KnowledgeBaseInitializer:
         logger.info(f"Content lists: {len(content_files)}")
 
         # Read provider from metadata instead of env var
-        provider = self.rag_provider or os.getenv("RAG_PROVIDER", "raganything")
+        provider = self.rag_provider or os.getenv("RAG_PROVIDER", "lightrag")
 
         # Try to read from metadata.json if available
         metadata_file = self.kb_dir / "metadata.json"

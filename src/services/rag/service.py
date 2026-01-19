@@ -49,11 +49,11 @@ class RAGService:
             kb_base_dir: Base directory for knowledge bases.
                          Defaults to data/knowledge_bases.
             provider: RAG pipeline provider to use.
-                      Defaults to RAG_PROVIDER env var or "raganything".
+                      Defaults to RAG_PROVIDER env var or "lightrag".
         """
         self.logger = get_logger("RAGService")
         self.kb_base_dir = kb_base_dir or DEFAULT_KB_BASE_DIR
-        self.provider = provider or os.getenv("RAG_PROVIDER", "raganything")
+        self.provider = provider or os.getenv("RAG_PROVIDER", "lightrag")
         self._pipeline = None
 
     def _get_pipeline(self):
@@ -226,7 +226,7 @@ class RAGService:
         Returns:
             Provider name from RAG_PROVIDER env var or default
         """
-        return os.getenv("RAG_PROVIDER", "raganything")
+        return os.getenv("RAG_PROVIDER", "lightrag")
 
     @staticmethod
     def has_provider(name: str) -> bool:

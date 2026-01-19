@@ -36,7 +36,7 @@ async def rag_search(
         query: Query question
         kb_name: Knowledge base name (optional, defaults to default knowledge base)
         mode: Query mode (e.g., "hybrid", "local", "global", "naive")
-        provider: RAG pipeline to use (defaults to RAG_PROVIDER env var or "raganything")
+        provider: RAG pipeline to use (defaults to RAG_PROVIDER env var or "lightrag")
         kb_base_dir: Base directory for knowledge bases (for testing)
         **kwargs: Additional parameters passed to the RAG pipeline
 
