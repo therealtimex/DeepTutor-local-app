@@ -98,7 +98,7 @@ export default function KnowledgePage() {
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const [newKbName, setNewKbName] = useState("");
   const [dragActive, setDragActive] = useState(false);
-  const [ragProvider, setRagProvider] = useState<string>("llamaindex");
+  const [ragProvider, setRagProvider] = useState<string>("realtimex");
   const [ragProviders, setRagProviders] = useState<
     Array<{ id: string; name: string; description: string }>
   >([]);
@@ -833,7 +833,7 @@ export default function KnowledgePage() {
       setCreateModalOpen(false);
       clearAllFiles();
       setNewKbName("");
-      setRagProvider("llamaindex"); // Reset to default
+      setRagProvider("realtimex"); // Reset to default
 
       // Delay refresh to get full info (but user can already see the new KB)
       setTimeout(async () => {
@@ -910,7 +910,7 @@ export default function KnowledgePage() {
             onClick={() => {
               clearAllFiles();
               setNewKbName("");
-              setRagProvider("llamaindex");
+              setRagProvider("realtimex");
               setCreateModalOpen(true);
             }}
             className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors flex items-center gap-2 shadow-lg shadow-slate-900/20"

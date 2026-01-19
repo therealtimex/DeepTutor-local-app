@@ -18,10 +18,17 @@ logger = logging.getLogger(__name__)
 # Pipeline registry - start with always-available pipelines
 _PIPELINES: Dict[str, Callable] = {
     "lightrag": lightrag.LightRAGPipeline,  # Knowledge graph: PDFParser, fast text-only (default)
+    "realtimex": lightrag.LightRAGPipeline,  # Alias: RealTimeX (uses LightRAG with RealTimeX AI config)
 }
 
 # Pipeline metadata for list_pipelines()
 _PIPELINE_INFO: Dict[str, Dict[str, str]] = {
+    "realtimex": {
+        "id": "realtimex",
+        "name": "RealTimeX",
+        "description": "RealTimeX AI powered knowledge retrieval (recommended).",
+        "available": True,
+    },
     "lightrag": {
         "id": "lightrag",
         "name": "LightRAG",
@@ -110,9 +117,9 @@ def get_pipeline(name: str = "lightrag", kb_base_dir: Optional[str] = None, **kw
     factory = _PIPELINES[name]
 
     # Handle different pipeline types:
-    # - lightrag, academic: functions that return RAGPipeline
+    # - lightrag, realtimex, academic: functions that return RAGPipeline
     # - llamaindex, raganything: classes that need instantiation
-    if name in ("lightrag", "academic"):
+    if name in ("lightrag", "realtimex", "academic"):
         # LightRAGPipeline and AcademicPipeline are factory functions
         return factory(kb_base_dir=kb_base_dir)
     elif name in ("llamaindex", "raganything"):
@@ -136,8 +143,8 @@ def list_pipelines(include_unavailable: bool = False) -> List[Dict[str, str]]:
         List of pipeline info dictionaries
     """
     result = []
-    # Order: lightrag first (default), then others
-    order = ["lightrag", "raganything", "llamaindex"]
+    # Order: realtimex first (recommended), then others
+    order = ["realtimex", "lightrag", "raganything", "llamaindex"]
     
     for pipeline_id in order:
         if pipeline_id in _PIPELINE_INFO:
