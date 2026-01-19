@@ -6,7 +6,22 @@ export * from "./common";
 // Domain-specific types
 export * from "./solver";
 export * from "./question";
-export * from "./research";
+export type {
+  TopicBlock,
+  ToolTrace,
+  ThoughtEntry,
+  TaskState,
+  OutlineSubsection,
+  OutlineSection,
+  ReportOutline,
+  ResearchState,
+  ResearchEventType,
+  ResearchEvent,
+  ActiveTaskInfo,
+  QueryInfo,
+  ResearchProgress,
+  ResearchContextState,
+} from "./research";
 export * from "./chat";
 export * from "./sidebar";
 export * from "./ideagen";
