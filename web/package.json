@@ -1,7 +1,9 @@
 {
-  "name": "opentutor-web",
-  "version": "0.2.0",
-  "private": true,
+  "name": "@realtimex/opentutor-web",
+  "version": "0.2.0-post1",
+  "bin": {
+    "opentutor-web": "bin/opentutor-web.js"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
