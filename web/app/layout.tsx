@@ -13,6 +13,8 @@ const font = Inter({
   fallback: ["system-ui", "sans-serif"],
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "DeepTutor Platform",
   description: "Multi-Agent Teaching & Research Copilot",
@@ -23,10 +25,19 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const runtimeConfig = {
+    API_BASE_URL: process.env.API_BASE_URL || "http://localhost:8004/realtimex",
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__RUNTIME_CONFIG__=${JSON.stringify(runtimeConfig)};`,
+          }}
+        />
       </head>
       <body className={font.className}>
         <GlobalProvider>

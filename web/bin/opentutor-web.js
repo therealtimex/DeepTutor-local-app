@@ -18,7 +18,7 @@ function printHelp() {
       "Environment variables:",
       "  PORT                   Port to listen on",
       "  HOSTNAME               Hostname to bind",
-      "  NEXT_PUBLIC_API_BASE   Backend API URL",
+      "  API_BASE_URL           Backend API URL",
       "",
       "Examples:",
       "  npx @realtimex/opentutor-web",
@@ -61,12 +61,17 @@ const distDir = path.resolve(__dirname, "..", "dist");
 const serverPath = path.join(distDir, "server.js");
 
 // Build environment with runtime config
+const defaultApiBase = "http://localhost:8004/realtimex";
 const env = {
   ...process.env,
   ...(port ? { PORT: String(port) } : {}),
   ...(hostname ? { HOSTNAME: String(hostname) } : {}),
-  ...(apiBase ? { NEXT_PUBLIC_API_BASE: apiBase } : {}),
+  ...(apiBase ? { API_BASE_URL: apiBase } : {}),
 };
+
+if (!env.API_BASE_URL) {
+  env.API_BASE_URL = defaultApiBase;
+}
 
 // Start the standalone server
 const child = spawn(process.execPath, [serverPath], {
