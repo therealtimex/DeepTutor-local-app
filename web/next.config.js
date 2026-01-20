@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+  // Enable standalone output for npm packaging
+  // This bundles the server and all dependencies into a minimal deployment
+  output: "standalone",
+
   // Move dev indicator to bottom-right corner
   devIndicators: {
     position: "bottom-right",
