@@ -16,13 +16,21 @@ function readRuntimeConfig(): { API_BASE_URL?: string } | null {
 }
 
 function resolveApiBaseUrl(): string {
+  // 1. Runtime override (for iframe embedding scenarios only)
+  //    This is injected by layout.tsx when API_BASE_URL env var is explicitly set
   const runtime = readRuntimeConfig();
   if (runtime?.API_BASE_URL) {
     return runtime.API_BASE_URL;
   }
-  if (process.env.API_BASE_URL) {
-    return process.env.API_BASE_URL;
+
+  // 2. Build-time configuration (the standard default from .env.local)
+  //    This is the correct default for standalone and development modes
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    return process.env.NEXT_PUBLIC_API_BASE;
   }
+
+  // 3. Hardcoded fallback (last resort only)
+  //    Only used if no configuration is provided at all
   return "http://localhost:8004/realtimex";
 }
 

@@ -27,7 +27,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const runtimeConfig = {
-    API_BASE_URL: process.env.API_BASE_URL || "http://localhost:8004/realtimex",
+    // Only inject API_BASE_URL if explicitly set (for iframe embedding scenarios)
+    // Otherwise, let the client use NEXT_PUBLIC_API_BASE from build-time config
+    ...(process.env.API_BASE_URL && { API_BASE_URL: process.env.API_BASE_URL }),
   };
 
   return (
