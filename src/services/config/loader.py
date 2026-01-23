@@ -191,7 +191,7 @@ def parse_language(language: Any) -> str:
         lang_lower = language.lower()
         if lang_lower in ["en", "english"]:
             return "en"
-        if lang_lower in ["zh", "chinese"]:
+        if lang_lower in ["zh", "chinese", "cn"]:
             return "zh"
 
     return "zh"  # Default Chinese

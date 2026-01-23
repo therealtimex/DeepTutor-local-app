@@ -37,8 +37,6 @@
 ---
 ### 📰 News
 
-> **[2026.1.15]** DeepTutor [v0.5.0](https://github.com/HKUDS/DeepTutor/releases/tag/v0.5.0) is out! Fixed multiple environment configuration and stability issues. We recommend everyone to pull the latest version! 🎉
-
 > **[2026.1.1]** Happy New Year! Join our [Discord Community](https://discord.gg/zpP9cssj), [Wechat Community](https://github.com/HKUDS/DeepTutor/issues/78), or [Discussions](https://github.com/HKUDS/DeepTutor/discussions) - shape the future of DeepTutor! 💬
 
 > **[2025.12.30]** Visit our [Official Website](https://hkuds.github.io/DeepTutor/) for more details!
@@ -47,9 +45,15 @@
 
 ### 📦 Releases
 
-> **[2026.1.15]** Release [v0.5.0](https://github.com/HKUDS/DeepTutor/releases/tag/v0.5.0) - Unified LLM & Embedding services, RAG pipeline selection, and major enhancements to Home, History, QuestionGen & Settings modules -- Thanks to all the contributors!
+> **[2026.1.23]** Release [v0.6.0](https://github.com/HKUDS/DeepTutor/releases/tag/v0.6.0) - Frontend session persistence, full Chinese support, Docker deployment updates, and minor bug fixes -- Thanks for all the feedback!
+
 <details>
 <summary>History releases</summary>
+
+> **[2026.1.18]** Release [v0.5.2](https://github.com/HKUDS/DeepTutor/releases/tag/v0.5.1) - Enhance RAG pipeline with Docling support and improve CI/CD workflows with several minor bugs fixed -- Thanks to all the feedbacks!
+
+
+> **[2026.1.15]** Release [v0.5.0](https://github.com/HKUDS/DeepTutor/releases/tag/v0.5.0) - Unified LLM & Embedding services, RAG pipeline selection, and major enhancements to Home, History, QuestionGen & Settings modules -- Thanks to all the contributors!
 
 > **[2026.1.9]** Release [v0.4.1](https://github.com/HKUDS/DeepTutor/releases/tag/v0.4.1) with LLM Provider system overhaul, Question Generation robustness improvements, and codebase cleanup - Thanks to all the contributors!
 
@@ -337,14 +341,14 @@ cp .env.example .env
 **Quick Start** — Build from source:
 
 ```bash
-docker compose up --build -d    # Build and start (~5-10 min first run)
-docker compose logs -f          # View logs
+docker compose up                  # Build and start (~11 min first run on mac mini M4)
+docker compose build --no-cache    # Clear cache and rebuild after pull the newest repo
 ```
 
 **Or use pre-built image** (faster):
 
 ```bash
-# Linux/macOS (AMD64)
+# Works on all platforms - Docker auto-detects your architecture
 docker run -d --name deeptutor \
   -p 8001:8001 -p 3782:3782 \
   --env-file .env \
@@ -352,7 +356,6 @@ docker run -d --name deeptutor \
   -v $(pwd)/config:/app/config:ro \
   ghcr.io/hkuds/deeptutor:latest
 
-# Apple Silicon (ARM64): use ghcr.io/hkuds/deeptutor:latest-arm64
 # Windows PowerShell: use ${PWD} instead of $(pwd)
 ```
 
@@ -368,14 +371,16 @@ docker compose up --build # Rebuild after changes
 <details>
 <summary>📋 <b>More Docker Options</b> (Pre-built images, Cloud deployment, Custom ports)</summary>
 
-**Pre-built Image Architecture Reference:**
+**Pre-built Image Tags:**
 
-| Architecture | Image Tag | Use Case |
-|:-------------|:----------|:---------|
-| **AMD64** | `ghcr.io/hkuds/deeptutor:latest` | Intel/AMD (most servers, Windows/Linux PCs) |
-| **ARM64** | `ghcr.io/hkuds/deeptutor:latest-arm64` | Apple Silicon, AWS Graviton, Raspberry Pi |
+| Tag | Architectures | Description |
+|:----|:--------------|:------------|
+| `:latest` | AMD64 + ARM64 | Latest stable release (auto-detects your architecture) |
+| `:v0.5.x` | AMD64 + ARM64 | Specific version (auto-detects your architecture) |
+| `:v0.5.x-amd64` | AMD64 only | Explicit AMD64 image |
+| `:v0.5.x-arm64` | ARM64 only | Explicit ARM64 image |
 
-> 💡 Run `uname -m` to check: `x86_64` = AMD64, `arm64`/`aarch64` = ARM64
+> 💡 The `:latest` tag is a **multi-architecture image** — Docker automatically pulls the correct version for your system (Intel/AMD or Apple Silicon/ARM)
 
 **Cloud Deployment** — Must set external API URL:
 
@@ -1552,8 +1557,9 @@ We hope DeepTutor could become a gift for the community. 🎁
 
 This project is licensed under the ***[AGPL-3.0 License](LICENSE)***.
 
-*✨ Thanks for visiting **DeepTutor**!*
-
-<img src="https://visitor-badge.laobi.icu/badge?page_id=HKUDS.DeepTutor&style=for-the-badge&color=00d4ff" alt="Views">
+<p align="center">
+  <em> Thanks for visiting ✨ DeepTutor!</em><br><br>
+  <img src="https://visitor-badge.laobi.icu/badge?page_id=HKUDS.DeepTutor&style=for-the-badge&color=00d4ff" alt="Views">
+</p>
 
 </div>

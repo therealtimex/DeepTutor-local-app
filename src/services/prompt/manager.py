@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Unified Prompt Manager - Single source of truth for all prompt loading.
 Supports multi-language, caching, and language fallbacks.
@@ -20,8 +21,8 @@ class PromptManager:
 
     # Language fallback chain: if primary language not found, try alternatives
     LANGUAGE_FALLBACKS = {
-        "zh": ["zh", "en"],
-        "en": ["en", "zh"],
+        "zh": ["zh", "cn", "en"],
+        "en": ["en", "zh", "cn"],
     }
 
     # Supported modules

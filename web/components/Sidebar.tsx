@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import {
   Home,
   History,
@@ -26,7 +27,6 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { useGlobal } from "@/context/GlobalContext";
-import { getTranslation } from "@/lib/i18n";
 
 const SIDEBAR_EXPANDED_WIDTH = 256;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
@@ -55,7 +55,6 @@ const ALL_NAV_ITEMS: Record<string, { icon: LucideIcon; nameKey: string }> = {
 export default function Sidebar() {
   const pathname = usePathname();
   const {
-    uiSettings,
     sidebarCollapsed,
     toggleSidebar,
     sidebarDescription,
@@ -63,9 +62,7 @@ export default function Sidebar() {
     sidebarNavOrder,
     setSidebarNavOrder,
   } = useGlobal();
-  const lang = uiSettings.language;
-
-  const t = (key: string) => getTranslation(lang, key);
+  const { t } = useTranslation();
 
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
 
@@ -82,32 +79,31 @@ export default function Sidebar() {
     null,
   );
 
-  // Build navigation items from saved order
-  const buildNavItems = (hrefs: string[]): NavItem[] => {
-    return hrefs
-      .filter((href) => ALL_NAV_ITEMS[href])
-      .map((href) => ({
-        name: t(ALL_NAV_ITEMS[href].nameKey),
-        href,
-        icon: ALL_NAV_ITEMS[href].icon,
-      }));
-  };
+  // Build navigation items from saved order - defined inside useMemo to properly capture dependencies
+  const navGroups = useMemo(() => {
+    const buildNavItems = (hrefs: string[]): NavItem[] => {
+      return hrefs
+        .filter((href) => ALL_NAV_ITEMS[href])
+        .map((href) => ({
+          name: t(ALL_NAV_ITEMS[href].nameKey),
+          href,
+          icon: ALL_NAV_ITEMS[href].icon,
+        }));
+    };
 
-  const navGroups = useMemo(
-    () => [
+    return [
       {
         id: "start" as const,
-        name: "WORKSPACE",
+        name: t("Workspace"),
         items: buildNavItems(sidebarNavOrder.start),
       },
       {
         id: "learnResearch" as const,
-        name: t("Learn") + " & " + t("Research"),
+        name: t("Learn & Research"),
         items: buildNavItems(sidebarNavOrder.learnResearch),
       },
-    ],
-    [sidebarNavOrder, lang],
-  );
+    ];
+  }, [sidebarNavOrder, t]);
 
   // Handle description edit
   const handleDescriptionEdit = () => {
@@ -117,7 +113,7 @@ export default function Sidebar() {
 
   const handleDescriptionSave = () => {
     setSidebarDescription(
-      editingDescriptionValue.trim() || "✨ Your description here",
+      editingDescriptionValue.trim() || t("✨ Your description here"),
     );
     setIsEditingDescription(false);
   };
@@ -233,7 +229,7 @@ export default function Sidebar() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                 <Image
                   src="/logo.png"
-                  alt="DeepTutor Logo"
+                  alt={t("DeepTutor Logo")}
                   width={32}
                   height={32}
                   className="object-contain"
@@ -270,7 +266,7 @@ export default function Sidebar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                title="Visit DeepTutor Homepage"
+                title={t("Visit DeepTutor Homepage")}
               >
                 <Globe className="w-4 h-4" />
               </a>
@@ -279,7 +275,7 @@ export default function Sidebar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                title="View on GitHub"
+                title={t("View on GitHub")}
               >
                 <Github className="w-4 h-4" />
               </a>
@@ -301,19 +297,19 @@ export default function Sidebar() {
                   onChange={(e) => setEditingDescriptionValue(e.target.value)}
                   onKeyDown={handleDescriptionKeyDown}
                   className="flex-1 text-[10px] font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-600 px-2 py-1.5 rounded-md border border-blue-300 dark:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Enter your description..."
+                  placeholder={t("Enter your description...")}
                 />
                 <button
                   onClick={handleDescriptionSave}
                   className="p-1 text-green-500 hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
-                  title="Save"
+                  title={t("Save")}
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={handleDescriptionCancel}
                   className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  title="Cancel"
+                  title={t("Cancel")}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -322,7 +318,7 @@ export default function Sidebar() {
               <div
                 onClick={handleDescriptionEdit}
                 className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-700/50 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-600 truncate cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-200 dark:hover:border-slate-500 transition-colors group"
-                title="Click to edit"
+                title={t("Click to edit")}
               >
                 <span className="group-hover:hidden">{sidebarDescription}</span>
                 <span className="hidden group-hover:inline text-blue-500 dark:text-blue-400">

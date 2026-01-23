@@ -19,8 +19,10 @@ import {
   CompletionSummary,
 } from "./components";
 import { useGuideSession, useNotebookSelection } from "./hooks";
+import { useTranslation } from "react-i18next";
 
 export default function GuidePage() {
+  const { t } = useTranslation();
   // Notebook selection hook
   const {
     notebooks,
@@ -139,7 +141,9 @@ export default function GuidePage() {
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={
+              sidebarCollapsed ? t("Expand sidebar") : t("Collapse sidebar")
+            }
           >
             {sidebarCollapsed ? (
               <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
@@ -153,8 +157,8 @@ export default function GuidePage() {
               className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
               title={
                 sidebarWide
-                  ? "Switch to narrow sidebar (1:3)"
-                  : "Switch to wide sidebar (3:1)"
+                  ? t("Switch to narrow sidebar (1:3)")
+                  : t("Switch to wide sidebar (3:1)")
               }
             >
               <ArrowRight
@@ -169,12 +173,12 @@ export default function GuidePage() {
           <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 p-8">
             <GraduationCap className="w-24 h-24 text-slate-200 dark:text-slate-600 mb-6" />
             <h3 className="text-lg font-medium text-slate-600 dark:text-slate-300 mb-2">
-              Guided Learning
+              {t("Guided Learning")}
             </h3>
             <p className="text-sm text-slate-400 dark:text-slate-500 max-w-md text-center leading-relaxed">
-              Select a notebook, and the system will generate a personalized
-              learning plan. Through interactive pages and intelligent Q&A,
-              you'll gradually master all the content.
+              {t(
+                "Select a notebook, and the system will generate a personalized learning plan. Through interactive pages and intelligent Q&A, you'll gradually master all the content.",
+              )}
             </p>
           </div>
         ) : isCompleted ? (
@@ -190,7 +194,7 @@ export default function GuidePage() {
           <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 p-8">
             <Loader2 className="w-12 h-12 text-indigo-400 dark:text-indigo-500 animate-spin mb-4" />
             <p className="text-slate-500 dark:text-slate-400">
-              {loadingMessage || "Loading learning content..."}
+              {loadingMessage || t("Loading learning content...")}
             </p>
           </div>
         )}

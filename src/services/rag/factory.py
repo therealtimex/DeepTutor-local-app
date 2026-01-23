@@ -1,25 +1,76 @@
+# -*- coding: utf-8 -*-
 """
 Pipeline Factory
 ================
 
 Factory for creating and managing RAG pipelines.
 
-LightRAG is the default pipeline (always available).
-RAGAnything and LlamaIndex are optional (require extra dependencies).
+Note: Pipeline imports are lazy to avoid importing heavy dependencies (lightrag, llama_index, etc.)
+at module load time. This allows the core services to be imported without RAG dependencies.
 """
 
 import logging
 from typing import Callable, Dict, List, Optional
-
-from .pipelines import lightrag
+import warnings
 
 logger = logging.getLogger(__name__)
 
-# Pipeline registry - start with always-available pipelines
-_PIPELINES: Dict[str, Callable] = {
-    "lightrag": lightrag.LightRAGPipeline,  # Knowledge graph: PDFParser, fast text-only (default)
-    "realtimex": lightrag.LightRAGPipeline,  # Alias: RealTimeX (uses LightRAG with RealTimeX AI config)
-}
+# Pipeline registry - populated lazily
+_PIPELINES: Dict[str, Callable] = {}
+_PIPELINES_INITIALIZED = False
+
+
+def _init_pipelines():
+    """Lazily initialize pipeline registry.
+
+    Important:
+    - Do NOT import optional heavy dependencies (e.g. llama_index) here.
+    - Pipelines must be imported inside their factory callables, so users can
+      use other providers without installing every optional dependency.
+    """
+    global _PIPELINES, _PIPELINES_INITIALIZED
+    if _PIPELINES_INITIALIZED:
+        return
+
+    def _build_raganything(**kwargs):
+        from .pipelines.raganything import RAGAnythingPipeline
+
+        return RAGAnythingPipeline(**kwargs)
+
+    def _build_raganything_docling(**kwargs):
+        from .pipelines.raganything_docling import RAGAnythingDoclingPipeline
+
+        return RAGAnythingDoclingPipeline(**kwargs)
+
+    def _build_lightrag(kb_base_dir: Optional[str] = None, **kwargs):
+        # LightRAGPipeline is a factory function returning a composed RAGPipeline
+        from .pipelines.lightrag import LightRAGPipeline
+
+        return LightRAGPipeline(kb_base_dir=kb_base_dir)
+
+    def _build_realtimex(kb_base_dir: Optional[str] = None, **kwargs):
+        # RealTimeX is an alias for LightRAG with RealTimeX branding
+        from .pipelines.lightrag import LightRAGPipeline
+
+        return LightRAGPipeline(kb_base_dir=kb_base_dir)
+
+    def _build_llamaindex(**kwargs):
+        # LlamaIndexPipeline depends on optional `llama_index` package.
+        # Import it only when explicitly requested.
+        from .pipelines.llamaindex import LlamaIndexPipeline
+
+        return LlamaIndexPipeline(**kwargs)
+
+    _PIPELINES.update(
+        {
+            "raganything": _build_raganything,  # Full multimodal: MinerU parser, deep analysis (slow, thorough)
+            "raganything_docling": _build_raganything_docling,  # Docling parser: Office/HTML friendly, easier setup
+            "lightrag": _build_lightrag,  # Knowledge graph: PDFParser, fast text-only (medium speed)
+            "realtimex": _build_realtimex,  # RealTimeX AI powered knowledge retrieval (recommended, uses LightRAG)
+            "llamaindex": _build_llamaindex,  # Vector-only: Simple chunking, fast (fastest)
+        }
+    )
+    _PIPELINES_INITIALIZED = True
 
 # Pipeline metadata for list_pipelines()
 _PIPELINE_INFO: Dict[str, Dict[str, str]] = {
@@ -87,13 +138,14 @@ def _register_optional_pipelines():
 _register_optional_pipelines()
 
 
-def get_pipeline(name: str = "lightrag", kb_base_dir: Optional[str] = None, **kwargs):
+
+def get_pipeline(name: str = "realtimex", kb_base_dir: Optional[str] = None, **kwargs):
     """
     Get a pre-configured pipeline by name.
 
     Args:
-        name: Pipeline name (lightrag, raganything, llamaindex)
-              Default is 'lightrag' (always available).
+        name: Pipeline name (raganything, raganything_docling, lightrag, realtimex, llamaindex)
+              Default is 'realtimex' (recommended, always available).
         kb_base_dir: Base directory for knowledge bases (passed to all pipelines)
         **kwargs: Additional arguments passed to pipeline constructor
 
@@ -103,6 +155,7 @@ def get_pipeline(name: str = "lightrag", kb_base_dir: Optional[str] = None, **kw
     Raises:
         ValueError: If pipeline name is not found or not available
     """
+    _init_pipelines()
     if name not in _PIPELINES:
         available = list(_PIPELINES.keys())
         # Check if it's a known but unavailable pipeline
@@ -116,20 +169,22 @@ def get_pipeline(name: str = "lightrag", kb_base_dir: Optional[str] = None, **kw
 
     factory = _PIPELINES[name]
 
-    # Handle different pipeline types:
-    # - lightrag, realtimex, academic: functions that return RAGPipeline
-    # - llamaindex, raganything: classes that need instantiation
-    if name in ("lightrag", "realtimex", "academic"):
-        # LightRAGPipeline and AcademicPipeline are factory functions
-        return factory(kb_base_dir=kb_base_dir)
-    elif name in ("llamaindex", "raganything"):
-        # LlamaIndexPipeline and RAGAnythingPipeline are classes
+    try:
+        # Handle different pipeline types:
+        # - lightrag, realtimex: callable that accepts kb_base_dir and returns a composed RAGPipeline
+        # - llamaindex, raganything, raganything_docling: callables that instantiate class-based pipelines
+        if name in ("lightrag", "realtimex"):
+            return factory(kb_base_dir=kb_base_dir, **kwargs)
+
         if kb_base_dir:
             kwargs["kb_base_dir"] = kb_base_dir
         return factory(**kwargs)
-    else:
-        # Default: try calling with kb_base_dir
-        return factory(kb_base_dir=kb_base_dir)
+    except ImportError as e:
+        # Common case: user didn't install optional RAG backend deps (e.g. llama_index).
+        raise ValueError(
+            f"Pipeline '{name}' is not available because an optional dependency is missing: {e}. "
+            f"Please install the required dependency for '{name}', or switch provider to 'realtimex'/'lightrag'."
+        ) from e
 
 
 def list_pipelines(include_unavailable: bool = False) -> List[Dict[str, str]]:
@@ -142,21 +197,33 @@ def list_pipelines(include_unavailable: bool = False) -> List[Dict[str, str]]:
     Returns:
         List of pipeline info dictionaries
     """
-    result = []
-    # Order: realtimex first (recommended), then others
-    order = ["realtimex", "lightrag", "raganything", "llamaindex"]
-    
-    for pipeline_id in order:
-        if pipeline_id in _PIPELINE_INFO:
-            info = _PIPELINE_INFO[pipeline_id]
-            if include_unavailable or info.get("available", False):
-                result.append({
-                    "id": info["id"],
-                    "name": info["name"],
-                    "description": info["description"],
-                })
-    
-    return result
+    return [
+        {
+            "id": "realtimex",
+            "name": "RealTimeX",
+            "description": "RealTimeX AI powered knowledge retrieval (recommended).",
+        },
+        {
+            "id": "lightrag",
+            "name": "LightRAG",
+            "description": "Lightweight knowledge graph retrieval, fast processing of text documents.",
+        },
+        {
+            "id": "raganything",
+            "name": "RAG-Anything (MinerU)",
+            "description": "Multimodal document processing with MinerU parser. Best for academic PDFs with complex equations and formulas.",
+        },
+        {
+            "id": "raganything_docling",
+            "name": "RAG-Anything (Docling)",
+            "description": "Multimodal document processing with Docling parser. Better for Office documents (.docx, .pptx) and HTML. Easier to install.",
+        },
+        {
+            "id": "llamaindex",
+            "name": "LlamaIndex",
+            "description": "Pure vector retrieval, fastest processing speed.",
+        },
+    ]
 
 
 def register_pipeline(name: str, factory: Callable):
@@ -167,6 +234,7 @@ def register_pipeline(name: str, factory: Callable):
         name: Pipeline name
         factory: Factory function or class that creates the pipeline
     """
+    _init_pipelines()
     _PIPELINES[name] = factory
 
 
@@ -180,6 +248,7 @@ def has_pipeline(name: str) -> bool:
     Returns:
         True if pipeline exists
     """
+    _init_pipelines()
     return name in _PIPELINES
 
 
@@ -190,8 +259,6 @@ def get_plugin(name: str) -> Dict[str, Callable]:
 
     Get a plugin by name (maps to pipeline API).
     """
-    import warnings
-
     warnings.warn(
         "get_plugin() is deprecated, use get_pipeline() instead",
         DeprecationWarning,
@@ -210,8 +277,6 @@ def list_plugins() -> List[Dict[str, str]]:
     """
     DEPRECATED: Use list_pipelines() instead.
     """
-    import warnings
-
     warnings.warn(
         "list_plugins() is deprecated, use list_pipelines() instead",
         DeprecationWarning,
@@ -224,8 +289,6 @@ def has_plugin(name: str) -> bool:
     """
     DEPRECATED: Use has_pipeline() instead.
     """
-    import warnings
-
     warnings.warn(
         "has_plugin() is deprecated, use has_pipeline() instead",
         DeprecationWarning,

@@ -5,12 +5,12 @@
 # DeepTutor: Seu Assistente Pessoal de Aprendizado
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-Join-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.gg/aka9p9EW)
-[![Feishu](https://img.shields.io/badge/Feishu-Group-blue?style=flat)](./Communication.md)
-[![WeChat](https://img.shields.io/badge/WeChat-Group-green?style=flat&logo=wechat)](./Communication.md)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](../../LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-Join-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.gg/eRsjPgMU4t)
+[![Feishu](https://img.shields.io/badge/Feishu-Group-blue?style=flat)](../../Communication.md)
+[![WeChat](https://img.shields.io/badge/WeChat-Group-green?style=flat&logo=wechat)](https://github.com/HKUDS/DeepTutor/issues/78)
 
 
 
@@ -28,11 +28,11 @@
 </div>
 
 ---
-> **[2026.1.1]** Feliz Ano Novo! Junte-se às nossas [GitHub Discussions](https://github.com/HKUDS/DeepTutor/discussions) — molde o futuro do DeepTutor! 💬
+> **[2026.1.1]** Feliz Ano Novo! Junte-se à nossa [Comunidade no Discord](https://discord.gg/zpP9cssj), à [Comunidade no WeChat](https://github.com/HKUDS/DeepTutor/issues/78), ou ao [Discussions](https://github.com/HKUDS/DeepTutor/discussions) — molde o futuro do DeepTutor! 💬
 
 > **[2025.12.30]** Visite nosso [Site Oficial](https://hkuds.github.io/DeepTutor/) para mais detalhes!
 
-> **[2025.12.29]** DeepTutor v0.1 já está disponível! ✨
+> **[2025.12.29]** DeepTutor já está disponível! ✨
 ---
 
 ## Características Principais do DeepTutor
@@ -229,24 +229,32 @@ cp .env.example .env
 | Variável | Obrigatório | Descrição |
 |:---|:---:|:---|
 | `LLM_MODEL` | **Sim** | Nome do modelo (ex: `gpt-4o`) |
+| `LLM_API_VERSION` | Não | Versão da API para Azure OpenAI (ex: `2024-02-15-preview`) |
 | `LLM_API_KEY` | **Sim** | Sua chave API LLM |
 | `LLM_HOST` | **Sim** | URL do endpoint da API |
 | `EMBEDDING_MODEL` | **Sim** | Nome do modelo de incorporação |
+| `EMBEDDING_API_VERSION` | Não | Versão da API para Azure OpenAI Embeddings |
 | `EMBEDDING_API_KEY` | **Sim** | Chave API de incorporação |
 | `EMBEDDING_HOST` | **Sim** | Endpoint da API de incorporação |
 | `BACKEND_PORT` | Não | Porta do backend (padrão: `8001`) |
 | `FRONTEND_PORT` | Não | Porta do frontend (padrão: `3782`) |
+| `NEXT_PUBLIC_API_BASE` | Não | **URL da API do frontend** (defina para acesso remoto/LAN, ex: `http://192.168.1.100:8001`) |
 | `TTS_*` | Não | Configurações de texto para voz |
 | `SEARCH_PROVIDER` | Não | Provedor de busca (opções: `perplexity`, `tavily`, `serper`, `jina`, `exa`, `baidu`, padrão: `perplexity`) |
 | `SEARCH_API_KEY` | Não | Chave API unificada para busca |
+
+> 💡 **Acesso remoto**: se estiver acessando de outro dispositivo (ex.: `192.168.31.66:3782`), adicione ao `.env`:
+> ```bash
+> NEXT_PUBLIC_API_BASE=http://192.168.31.66:8001
+> ```
 
 </details>
 
 **③ Configurar Portas e LLM** *(Opcional)*
 
-- **Portas**: Edite `config/main.yaml` → `server.backend_port` / `server.frontend_port`
+- **Portas**: Configure no `.env` → `BACKEND_PORT` / `FRONTEND_PORT` (padrão: 8001/3782)
 - **LLM**: Edite `config/agents.yaml` → `temperature` / `max_tokens` por módulo
-- Consulte [Documentação de Configuração](config/README.md) para detalhes
+- Consulte [Documentação de Configuração](../../config/README.md) para detalhes
 
 **④ Experimentar Bases de Conhecimento Demo** *(Opcional)*
 
@@ -288,18 +296,15 @@ cp .env.example .env
 <summary><b>🚀 Opção A: Imagem Pré-construída (Mais Rápido)</b></summary>
 
 ```bash
-# Baixar e executar imagem pré-construída (~30 segundos)
+# Funciona em todas as plataformas — Docker detecta sua arquitetura automaticamente
 docker run -d --name deeptutor \
   -p 8001:8001 -p 3782:3782 \
-  -e LLM_MODEL=gpt-4o \
-  -e LLM_API_KEY=your-api-key \
-  -e LLM_HOST=https://api.openai.com/v1 \
-  -e EMBEDDING_MODEL=text-embedding-3-large \
-  -e EMBEDDING_API_KEY=your-api-key \
-  -e EMBEDDING_HOST=https://api.openai.com/v1 \
+  --env-file .env \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/config:/app/config:ro \
   ghcr.io/hkuds/deeptutor:latest
+
+# Windows PowerShell: use ${PWD} em vez de $(pwd)
 ```
 
 Ou usar arquivo `.env`:
@@ -457,11 +462,11 @@ Todos os resultados são automaticamente salvos quando você realiza qualquer at
 **Lista de Verificação**
 - Confirme que a versão Python >= 3.10
 - Confirme que todas as dependências estão instaladas: `pip install -r requirements.txt`
-- Verifique se a porta 8001 está em uso (configurável em `config/main.yaml`)
+- Verifique se a porta 8001 está em uso
 - Verifique a configuração do arquivo `.env`
 
 **Soluções**
-- **Mudar porta**: Edite `config/main.yaml` server.backend_port
+- **Mudar porta**: Defina `BACKEND_PORT=9001` no arquivo `.env`
 - **Verificar logs**: Revise as mensagens de erro do terminal
 
 </details>
@@ -638,7 +643,7 @@ Isso extrairá elementos numerados (Definições, Teoremas, Equações, etc.) da
 
 ## 📄 Licença
 
-Este projeto está licenciado sob **[AGPL-3.0](LICENSE)**.
+Este projeto está licenciado sob **[AGPL-3.0](../../LICENSE)**.
 
 
 ## ⭐ Histórico de Stars

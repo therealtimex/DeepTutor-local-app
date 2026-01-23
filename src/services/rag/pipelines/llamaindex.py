@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 LlamaIndex Pipeline
 ===================
@@ -290,6 +291,104 @@ class LlamaIndexPipeline:
                 "mode": mode,
                 "provider": "llamaindex",
             }
+
+    async def add_documents(self, kb_name: str, file_paths: List[str], **kwargs) -> bool:
+        """
+        Incrementally add documents to an existing LlamaIndex KB.
+
+        If the storage directory exists, loads the existing index and inserts
+        new documents. Otherwise, creates a new index.
+
+        Args:
+            kb_name: Knowledge base name
+            file_paths: List of file paths to add
+            **kwargs: Additional arguments
+
+        Returns:
+            True if successful
+        """
+        self.logger.info(f"Adding {len(file_paths)} documents to KB '{kb_name}' using LlamaIndex")
+
+        kb_dir = Path(self.kb_base_dir) / kb_name
+        storage_dir = kb_dir / "llamaindex_storage"
+
+        try:
+            # Parse new documents
+            documents = []
+            for file_path in file_paths:
+                file_path = Path(file_path)
+                self.logger.info(f"Parsing: {file_path.name}")
+
+                # Extract text based on file type
+                if file_path.suffix.lower() == ".pdf":
+                    text = self._extract_pdf_text(file_path)
+                else:
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            text = f.read()
+                    except UnicodeDecodeError:
+                        with open(file_path, "r", encoding="latin-1") as f:
+                            text = f.read()
+
+                if text.strip():
+                    doc = Document(
+                        text=text,
+                        metadata={
+                            "file_name": file_path.name,
+                            "file_path": str(file_path),
+                        },
+                    )
+                    documents.append(doc)
+                    self.logger.info(f"Loaded: {file_path.name} ({len(text)} chars)")
+                else:
+                    self.logger.warning(f"Skipped empty document: {file_path.name}")
+
+            if not documents:
+                self.logger.warning("No valid documents to add")
+                return False
+
+            loop = asyncio.get_event_loop()
+
+            if storage_dir.exists():
+                # Load existing index and insert new documents
+                self.logger.info(f"Loading existing index from {storage_dir}...")
+
+                def load_and_insert():
+                    storage_context = StorageContext.from_defaults(persist_dir=str(storage_dir))
+                    index = load_index_from_storage(storage_context)
+
+                    # Insert new documents
+                    for doc in documents:
+                        index.insert(doc)
+
+                    # Persist updated index
+                    index.storage_context.persist(persist_dir=str(storage_dir))
+                    return len(documents)
+
+                num_added = await loop.run_in_executor(None, load_and_insert)
+                self.logger.info(f"Added {num_added} documents to existing index")
+            else:
+                # Create new index (first time)
+                self.logger.info(f"Creating new index with {len(documents)} documents...")
+                storage_dir.mkdir(parents=True, exist_ok=True)
+
+                def create_index():
+                    index = VectorStoreIndex.from_documents(documents, show_progress=True)
+                    index.storage_context.persist(persist_dir=str(storage_dir))
+                    return len(documents)
+
+                num_added = await loop.run_in_executor(None, create_index)
+                self.logger.info(f"Created new index with {num_added} documents")
+
+            self.logger.info(f"Successfully added documents to KB '{kb_name}'")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to add documents: {e}")
+            import traceback
+
+            self.logger.error(traceback.format_exc())
+            return False
 
     async def delete(self, kb_name: str) -> bool:
         """

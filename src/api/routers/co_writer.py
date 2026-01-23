@@ -23,6 +23,7 @@ from src.agents.co_writer.edit_agent import (
 from src.agents.co_writer.narrator_agent import NarratorAgent
 from src.logging import get_logger
 from src.services.config import load_config_with_main
+from src.services.settings.interface_settings import get_ui_language
 from src.services.tts import get_tts_config
 
 router = APIRouter()
@@ -33,13 +34,15 @@ config = load_config_with_main("solve_config.yaml", project_root)  # Use any con
 log_dir = config.get("paths", {}).get("user_log_dir") or config.get("logging", {}).get("log_dir")
 logger = get_logger("CoWriter", level="INFO", log_dir=log_dir)
 
-# Get system language for agent
-_system_language = config.get("system", {}).get("language", "en")
-
 # Singleton agent instances - use refresh_config() before each request
 # to pick up any configuration changes from Settings
 _edit_agent: EditAgent | None = None
 _narrator_agent: NarratorAgent | None = None
+
+
+def _current_language() -> str:
+    # Prefer UI settings, fall back to main.yaml system.language
+    return get_ui_language(default=config.get("system", {}).get("language", "en"))
 
 
 def get_edit_agent() -> EditAgent:
@@ -51,8 +54,9 @@ def get_edit_agent() -> EditAgent:
     2. Latest LLM configuration from Settings is always used
     """
     global _edit_agent
-    if _edit_agent is None:
-        _edit_agent = EditAgent(language=_system_language)
+    lang = _current_language()
+    if _edit_agent is None or getattr(_edit_agent, "language", None) != lang:
+        _edit_agent = EditAgent(language=lang)
     # Refresh config to pick up any changes from Settings
     _edit_agent.refresh_config()
     return _edit_agent
@@ -67,8 +71,9 @@ def get_narrator_agent() -> NarratorAgent:
     2. Latest LLM configuration from Settings is always used
     """
     global _narrator_agent
-    if _narrator_agent is None:
-        _narrator_agent = NarratorAgent(language=_system_language)
+    lang = _current_language()
+    if _narrator_agent is None or getattr(_narrator_agent, "language", None) != lang:
+        _narrator_agent = NarratorAgent(language=lang)
     # Refresh config to pick up any changes from Settings
     _narrator_agent.refresh_config()
     return _narrator_agent

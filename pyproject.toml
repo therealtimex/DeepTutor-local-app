@@ -231,7 +231,8 @@ split-on-trailing-comma = true
 # ============================================
 [tool.ruff.lint.per-file-ignores]
 # Allow longer lines in test files
-"**/test_*.py" = ["E501", "PLR2004"]
+# F401: Allow unused imports for availability checks in tests
+"**/test_*.py" = ["E501", "PLR2004", "F401"]
 "**/__init__.py" = ["F401"]  # Allow unused imports in __init__.py
 
 # ============================================

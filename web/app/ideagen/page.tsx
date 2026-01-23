@@ -27,6 +27,7 @@ import { apiUrl, wsUrl } from "@/lib/api";
 import { processLatexContent } from "@/lib/latex";
 import AddToNotebookModal from "@/components/AddToNotebookModal";
 import { useGlobal } from "@/context/GlobalContext";
+import { useTranslation } from "react-i18next";
 
 interface Notebook {
   id: string;
@@ -63,6 +64,7 @@ interface SelectedRecord extends NotebookRecord {
 export default function IdeaGenPage() {
   // Global state for persistence across page navigation
   const { ideaGenState, setIdeaGenState } = useGlobal();
+  const { t } = useTranslation();
 
   // Notebook selection - now supports multiple notebooks
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
@@ -336,8 +338,10 @@ export default function IdeaGenPage() {
       // Merge all selected ideas
       const combinedIdea: ResearchIdea = {
         id: "combined",
-        knowledge_point: "Collection of Research Ideas",
-        description: `Research ideas containing ${selected.length} knowledge points`,
+        knowledge_point: t("Collection of Research Ideas"),
+        description: t(
+          "Research ideas containing {n} knowledge points",
+        ).replace("{n}", String(selected.length)),
         research_ideas: selected.flatMap((i) => i.research_ideas),
         statement: selected.map((i) => i.statement).join("\n\n---\n\n"),
         expanded: false,
@@ -372,14 +376,14 @@ export default function IdeaGenPage() {
           <div className="p-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
             <h2 className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              Select Source (Cross-Notebook)
+              {t("Select Source (Cross-Notebook)")}
             </h2>
             {selectedRecords.size > 0 && (
               <button
                 onClick={clearAllSelections}
                 className="text-xs text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
               >
-                Clear ({selectedRecords.size})
+                {t("Clear")} ({selectedRecords.size})
               </button>
             )}
           </div>
@@ -391,7 +395,7 @@ export default function IdeaGenPage() {
               </div>
             ) : notebooks.length === 0 ? (
               <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
-                No notebooks with records found
+                {t("No notebooks with records found")}
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -443,7 +447,7 @@ export default function IdeaGenPage() {
                             </div>
                           ) : records.length === 0 ? (
                             <div className="py-2 text-xs text-slate-400 dark:text-slate-500 text-center">
-                              No records
+                              {t("No records")}
                             </div>
                           ) : (
                             <>
@@ -528,24 +532,32 @@ export default function IdeaGenPage() {
           {/* User Thoughts Input */}
           <div className="p-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-              Your Thoughts{" "}
-              {selectedRecords.size > 0 ? "(Optional)" : "(Required)"}
+              {t("Your Thoughts")}{" "}
+              {selectedRecords.size > 0
+                ? `(${t("Optional")})`
+                : `(${t("Required")})`}
             </label>
             <textarea
               value={userThoughts}
               onChange={(e) => setUserThoughts(e.target.value)}
               placeholder={
                 selectedRecords.size > 0
-                  ? "Describe your thoughts or research direction based on these materials..."
-                  : "Describe your research topic or idea (no notebook selection needed)..."
+                  ? t(
+                      "Describe your thoughts or research direction based on these materials...",
+                    )
+                  : t(
+                      "Describe your research topic or idea (no notebook selection needed)...",
+                    )
               }
               className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
               rows={3}
             />
             {selectedRecords.size === 0 && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                💡 You can generate ideas from text description alone, or select
-                notebook records above for richer context.
+                💡{" "}
+                {t(
+                  "You can generate ideas from text description alone, or select notebook records above for richer context.",
+                )}
               </p>
             )}
           </div>
@@ -560,14 +572,17 @@ export default function IdeaGenPage() {
               {isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating...
+                  {t("Generating...")}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
                   {selectedRecords.size > 0
-                    ? `Generate Ideas (${selectedRecords.size} items)`
-                    : "Generate Ideas (Text Only)"}
+                    ? t("Generate Ideas ({n} items)").replace(
+                        "{n}",
+                        String(selectedRecords.size),
+                      )
+                    : t("Generate Ideas (Text Only)")}
                 </>
               )}
             </button>
@@ -585,10 +600,10 @@ export default function IdeaGenPage() {
             </div>
             <div>
               <h1 className="font-bold text-slate-900 dark:text-slate-100">
-                IdeaGen
+                {t("IdeaGen")}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Discover research ideas from your notes
+                {t("Discover research ideas from your notes")}
               </p>
             </div>
           </div>
@@ -599,7 +614,7 @@ export default function IdeaGenPage() {
                 onClick={selectAllIdeas}
                 className="px-3 py-1.5 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg transition-colors"
               >
-                Select All
+                {t("Select All")}
               </button>
               <button
                 onClick={saveSelectedIdeas}
@@ -607,7 +622,7 @@ export default function IdeaGenPage() {
                 className="px-3 py-1.5 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center gap-1"
               >
                 <Save className="w-3 h-3" />
-                Save Selected
+                {t("Save Selected")}
               </button>
             </div>
           )}
@@ -638,7 +653,7 @@ export default function IdeaGenPage() {
             <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
               <Brain className="w-16 h-16 text-slate-200 dark:text-slate-600 mb-4" />
               <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-                Select notebook records or describe your research topic
+                {t("Select notebook records or describe your research topic")}
                 <br />
                 <span className="text-xs text-slate-400 dark:text-slate-500 mt-2 block">
                   You can select notebooks for context, or simply describe your
@@ -685,7 +700,7 @@ export default function IdeaGenPage() {
                           <button
                             onClick={() => saveIdea(idea)}
                             className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg transition-colors"
-                            title="Save to Notebook"
+                            title={t("Save to Notebook")}
                           >
                             <Save className="w-4 h-4" />
                           </button>

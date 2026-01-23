@@ -30,8 +30,8 @@ import "katex/dist/katex.min.css";
 import { useGlobal } from "@/context/GlobalContext";
 import { apiUrl } from "@/lib/api";
 import { processLatexContent } from "@/lib/latex";
-import { getTranslation } from "@/lib/i18n";
 import AddToNotebookModal from "@/components/AddToNotebookModal";
+import { useTranslation } from "react-i18next";
 
 interface KnowledgeBase {
   name: string;
@@ -45,13 +45,12 @@ export default function HomePage() {
     sendChatMessage,
     clearChatHistory,
     newChatSession,
-    uiSettings,
   } = useGlobal();
-  const t = (key: string) => getTranslation(uiSettings.language, key);
+  const { t } = useTranslation();
 
   const [inputMessage, setInputMessage] = useState("");
   const [kbs, setKbs] = useState<KnowledgeBase[]>([]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showNotebookModal, setShowNotebookModal] = useState(false);
 
@@ -65,13 +64,15 @@ export default function HomePage() {
     const title =
       firstUserMsg?.content.slice(0, 50) +
         (firstUserMsg && firstUserMsg.content.length > 50 ? "..." : "") ||
-      "Chat Session";
+      t("Chat Session");
 
     // Format all messages as markdown
     const formattedMessages = chatState.messages
       .map((msg, idx) => {
         const roleLabel =
-          msg.role === "user" ? "👤 **User**" : "🤖 **Assistant**";
+          msg.role === "user"
+            ? `👤 **${t("User")}**`
+            : `🤖 **${t("Assistant")}**`;
         return `### ${roleLabel}\n\n${msg.content}`;
       })
       .join("\n\n---\n\n");
@@ -94,13 +95,15 @@ export default function HomePage() {
     fetch(apiUrl("/api/v1/knowledge/list"))
       .then((res) => res.json())
       .then((data) => {
-        setKbs(data);
-        if (!chatState.selectedKb) {
-          const defaultKb = data.find((kb: KnowledgeBase) => kb.is_default);
+        // Ensure data is an array before processing
+        const kbList = Array.isArray(data) ? data : [];
+        setKbs(kbList);
+        if (!chatState.selectedKb && kbList.length > 0) {
+          const defaultKb = kbList.find((kb: KnowledgeBase) => kb.is_default);
           if (defaultKb) {
             setChatState((prev) => ({ ...prev, selectedKb: defaultKb.name }));
-          } else if (data.length > 0) {
-            setChatState((prev) => ({ ...prev, selectedKb: data[0].name }));
+          } else {
+            setChatState((prev) => ({ ...prev, selectedKb: kbList[0].name }));
           }
         }
       })
@@ -110,8 +113,13 @@ export default function HomePage() {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      // Use scrollTop instead of scrollIntoView to prevent page-level scrolling
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [chatState.messages]);
 
@@ -134,42 +142,42 @@ export default function HomePage() {
       label: t("Smart Problem Solving"),
       href: "/solver",
       color: "blue",
-      description: "Multi-agent reasoning",
+      description: t("Multi-agent reasoning"),
     },
     {
       icon: PenTool,
       label: t("Generate Practice Questions"),
       href: "/question",
       color: "purple",
-      description: "Auto-validated quizzes",
+      description: t("Auto-validated quizzes"),
     },
     {
       icon: Microscope,
       label: t("Deep Research Reports"),
       href: "/research",
       color: "emerald",
-      description: "Comprehensive analysis",
+      description: t("Comprehensive analysis"),
     },
     {
       icon: Lightbulb,
       label: t("Generate Novel Ideas"),
       href: "/ideagen",
       color: "amber",
-      description: "Brainstorm & synthesize",
+      description: t("Brainstorm & synthesize"),
     },
     {
       icon: GraduationCap,
       label: t("Guided Learning"),
       href: "/guide",
       color: "indigo",
-      description: "Step-by-step tutoring",
+      description: t("Step-by-step tutoring"),
     },
     {
       icon: Edit3,
       label: t("Co-Writer"),
       href: "/co_writer",
       color: "pink",
-      description: "Collaborative writing",
+      description: t("Collaborative writing"),
     },
   ];
 
@@ -391,7 +399,10 @@ export default function HomePage() {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto px-6 py-6 space-y-6"
+          >
             {chatState.messages.map((msg, idx) => (
               <div
                 key={idx}
@@ -494,8 +505,6 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-
-            <div ref={chatEndRef} />
           </div>
 
           {/* Input Area - Fixed at bottom */}

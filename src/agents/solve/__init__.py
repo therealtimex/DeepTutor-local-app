@@ -42,6 +42,9 @@ from .memory import (
     ToolCallRecord,
 )
 
+# Session management
+from .session_manager import SolverSessionManager, get_solver_session_manager
+
 # Solve loop
 from .solve_loop import (
     ManagerAgent,
@@ -77,4 +80,7 @@ __all__ = [
     "ToolAgent",
     # Main Controller
     "MainSolver",
+    # Session Management
+    "SolverSessionManager",
+    "get_solver_session_manager",
 ]

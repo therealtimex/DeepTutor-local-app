@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
+import { useTranslation } from "react-i18next";
 
 interface MermaidProps {
   chart: string;
@@ -32,6 +33,7 @@ mermaid.initialize({
 let mermaidIdCounter = 0;
 
 export const Mermaid: React.FC<MermaidProps> = ({ chart, className = "" }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -66,12 +68,12 @@ export const Mermaid: React.FC<MermaidProps> = ({ chart, className = "" }) => {
         className={`my-4 p-4 bg-red-50 border border-red-200 rounded-lg ${className}`}
       >
         <p className="text-red-600 text-sm font-medium mb-2">
-          Diagram rendering error
+          {t("Diagram rendering error")}
         </p>
         <pre className="text-xs text-red-500 whitespace-pre-wrap">{error}</pre>
         <details className="mt-2">
           <summary className="text-xs text-slate-500 cursor-pointer">
-            Show source
+            {t("Show source")}
           </summary>
           <pre className="mt-2 p-2 bg-slate-100 rounded text-xs overflow-x-auto">
             {chart}

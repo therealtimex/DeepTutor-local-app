@@ -5,12 +5,12 @@
 # DeepTutor: あなたのパーソナル学習アシスタント
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-Join-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.gg/aka9p9EW)
-[![Feishu](https://img.shields.io/badge/Feishu-Group-blue?style=flat)](./Communication.md)
-[![WeChat](https://img.shields.io/badge/WeChat-Group-green?style=flat&logo=wechat)](./Communication.md)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](../../LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-Join-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.gg/eRsjPgMU4t)
+[![Feishu](https://img.shields.io/badge/Feishu-Group-blue?style=flat)](../../Communication.md)
+[![WeChat](https://img.shields.io/badge/WeChat-Group-green?style=flat&logo=wechat)](https://github.com/HKUDS/DeepTutor/issues/78)
 
 
 
@@ -28,11 +28,11 @@
 </div>
 
 ---
-> **[2026.1.1]** 新年あけましておめでとうございます！[GitHub Discussions](https://github.com/HKUDS/DeepTutor/discussions) に参加して、DeepTutor の未来を一緒に創りましょう！💬
+> **[2026.1.1]** 新年あけましておめでとうございます！[Discord コミュニティ](https://discord.gg/zpP9cssj)、[WeChat コミュニティ](https://github.com/HKUDS/DeepTutor/issues/78)、または [Discussions](https://github.com/HKUDS/DeepTutor/discussions) に参加して、DeepTutor の未来を一緒に創りましょう！💬
 
 > **[2025.12.30]** 詳細は [公式ウェブサイト](https://hkuds.github.io/DeepTutor/) をご覧ください！
 
-> **[2025.12.29]** DeepTutor v0.1 がリリースされました！✨
+> **[2025.12.29]** DeepTutor が公開されました！✨
 ---
 
 ## DeepTutor の主要機能
@@ -247,24 +247,32 @@ cp .env.example .env
 | 変数 | 必須 | 説明 |
 |:---|:---:|:---|
 | `LLM_MODEL` | **はい** | モデル名（例：`gpt-4o`） |
+| `LLM_API_VERSION` | いいえ | Azure OpenAI の API バージョン（例：`2024-02-15-preview`） |
 | `LLM_API_KEY` | **はい** | LLM API キー |
 | `LLM_HOST` | **はい** | API エンドポイント URL |
 | `EMBEDDING_MODEL` | **はい** | 埋め込みモデル名 |
+| `EMBEDDING_API_VERSION` | いいえ | Azure OpenAI Embeddings の API バージョン |
 | `EMBEDDING_API_KEY` | **はい** | 埋め込み API キー |
 | `EMBEDDING_HOST` | **はい** | 埋め込み API エンドポイント |
 | `BACKEND_PORT` | いいえ | バックエンドポート（デフォルト：`8001`） |
 | `FRONTEND_PORT` | いいえ | フロントエンドポート（デフォルト：`3782`） |
+| `NEXT_PUBLIC_API_BASE` | いいえ | **フロントエンド用 API URL**（リモート/LAN アクセス時に設定。例：`http://192.168.1.100:8001`） |
 | `TTS_*` | いいえ | テキスト読み上げ設定 |
 | `SEARCH_PROVIDER` | いいえ | 検索プロバイダー（オプション：`perplexity`, `tavily`, `serper`, `jina`, `exa`, `baidu`、デフォルト：`perplexity`）|
 | `SEARCH_API_KEY` | いいえ | 統一検索APIキー |
+
+> 💡 **リモートアクセス**：別デバイス（例：`192.168.31.66:3782`）からアクセスする場合は `.env` に追加します：
+> ```bash
+> NEXT_PUBLIC_API_BASE=http://192.168.31.66:8001
+> ```
 
 </details>
 
 **③ ポートと LLM を設定** *(オプション)*
 
-- **ポート**：`config/main.yaml` を編集 → `server.backend_port` / `server.frontend_port`
+- **ポート**：`.env` で `BACKEND_PORT` / `FRONTEND_PORT` を設定（デフォルト：8001/3782）
 - **LLM**：`config/agents.yaml` を編集 → 各モジュールの `temperature` / `max_tokens`
-- 詳細は[設定ドキュメント](config/README.md)を参照
+- 詳細は[設定ドキュメント](../../config/README.md)を参照
 
 **④ デモナレッジベースを試す** *(オプション)*
 
@@ -306,29 +314,15 @@ cp .env.example .env
 <summary><b>🚀 オプション A: 事前構築済みイメージ（最速）</b></summary>
 
 ```bash
-# 事前構築済みイメージをプルして実行（約30秒）
-docker run -d --name deeptutor \
-  -p 8001:8001 -p 3782:3782 \
-  -e LLM_MODEL=gpt-4o \
-  -e LLM_API_KEY=your-api-key \
-  -e LLM_HOST=https://api.openai.com/v1 \
-  -e EMBEDDING_MODEL=text-embedding-3-large \
-  -e EMBEDDING_API_KEY=your-api-key \
-  -e EMBEDDING_HOST=https://api.openai.com/v1 \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config:/app/config:ro \
-  ghcr.io/hkuds/deeptutor:latest
-```
-
-または `.env` ファイルを使用：
-
-```bash
+# すべてのプラットフォームで動作（Docker がアーキテクチャを自動判別）
 docker run -d --name deeptutor \
   -p 8001:8001 -p 3782:3782 \
   --env-file .env \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/config:/app/config:ro \
   ghcr.io/hkuds/deeptutor:latest
+
+# Windows PowerShell: $(pwd) の代わりに ${PWD} を使用
 ```
 
 </details>
@@ -419,7 +413,7 @@ python scripts/start.py
 
 ## 📄 ライセンス
 
-このプロジェクトは **[AGPL-3.0 ライセンス](LICENSE)** でライセンスされています。
+このプロジェクトは **[AGPL-3.0 ライセンス](../../LICENSE)** でライセンスされています。
 
 
 ## ⭐ Star History

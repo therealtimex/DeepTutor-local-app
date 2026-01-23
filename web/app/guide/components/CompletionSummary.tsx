@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { useTranslation } from "react-i18next";
 import { processLatexContent } from "@/lib/latex";
 
 interface CompletionSummaryProps {
@@ -13,6 +14,7 @@ interface CompletionSummaryProps {
 }
 
 export default function CompletionSummary({ summary }: CompletionSummaryProps) {
+  const { t } = useTranslation();
   // Table components for ReactMarkdown
   const tableComponents = {
     table: ({ node, ...props }: any) => (
@@ -52,7 +54,7 @@ export default function CompletionSummary({ summary }: CompletionSummaryProps) {
       <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-emerald-50 to-indigo-50 dark:from-emerald-900/20 dark:to-indigo-900/20 flex items-center justify-between shrink-0">
         <h2 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          Learning Summary
+          {t("Learning Summary")}
         </h2>
       </div>
       {/* Summary Content */}

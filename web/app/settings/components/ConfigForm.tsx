@@ -27,6 +27,7 @@ interface ConfigFormProps {
   showVoice: boolean;
   isSearchConfig: boolean;
   editConfig?: ConfigItem | null;
+  t: (key: string) => string;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -37,6 +38,7 @@ export default function ConfigForm({
   showVoice,
   isSearchConfig,
   editConfig,
+  t,
   onSuccess,
   onCancel,
 }: ConfigFormProps) {
@@ -107,25 +109,25 @@ export default function ConfigForm({
     if (!useEnvBaseUrl && !baseUrl) {
       setTestResult({
         success: false,
-        message: "Base URL is required for testing",
+        message: t("Base URL is required for testing"),
       });
       return;
     }
     if (!isLocalProvider && !useEnvApiKey && !apiKey) {
       setTestResult({
         success: false,
-        message: "API Key is required for cloud providers",
+        message: t("API Key is required for cloud providers"),
       });
       return;
     }
     if (!model) {
-      setTestResult({ success: false, message: "Model name is required" });
+      setTestResult({ success: false, message: t("Model name is required") });
       return;
     }
     if (configType === "embedding" && !dimensions) {
       setTestResult({
         success: false,
-        message: "Dimensions is required for embedding models",
+        message: t("Dimensions is required for embedding models"),
       });
       return;
     }
@@ -159,12 +161,12 @@ export default function ConfigForm({
         success: data.success ?? false,
         message:
           data.message ||
-          (data.success ? "Connection successful" : "Connection failed"),
+          (data.success ? t("Connection successful") : t("Connection failed")),
       });
     } catch (e: any) {
       setTestResult({
         success: false,
-        message: e?.message || "Connection test failed - network error",
+        message: e?.message || t("Connection test failed - network error"),
       });
     } finally {
       setTesting(false);
@@ -219,11 +221,17 @@ export default function ConfigForm({
         const data = await res.json();
         setError(
           data.detail ||
-            `Failed to ${isEditMode ? "update" : "add"} configuration`,
+            (isEditMode
+              ? t("Failed to update configuration")
+              : t("Failed to add configuration")),
         );
       }
     } catch (e) {
-      setError(`Failed to ${isEditMode ? "update" : "add"} configuration`);
+      setError(
+        isEditMode
+          ? t("Failed to update configuration")
+          : t("Failed to add configuration"),
+      );
     } finally {
       setSaving(false);
     }
@@ -236,8 +244,8 @@ export default function ConfigForm({
     >
       <h3 className="font-medium text-slate-900 dark:text-slate-100 mb-4">
         {isEditMode
-          ? `Edit Configuration: ${editConfig.name}`
-          : "Add New Configuration"}
+          ? `${t("Edit Configuration")}: ${editConfig.name}`
+          : t("Add New Configuration")}
       </h3>
 
       {error && (
@@ -262,14 +270,14 @@ export default function ConfigForm({
         {/* Name */}
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Name
+            {t("Name")}
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            placeholder="My Configuration"
+            placeholder={t("My Configuration")}
             className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -277,7 +285,7 @@ export default function ConfigForm({
         {/* Provider */}
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Provider
+            {t("Provider")}
           </label>
           <div className="relative">
             <select
@@ -288,7 +296,7 @@ export default function ConfigForm({
               {PROVIDER_OPTIONS[configType].map((p) => (
                 <option key={p} value={p}>
                   {p}
-                  {LOCAL_PROVIDERS.includes(p) ? " (local)" : ""}
+                  {LOCAL_PROVIDERS.includes(p) ? ` (${t("local")})` : ""}
                 </option>
               ))}
             </select>
@@ -300,7 +308,7 @@ export default function ConfigForm({
         {!isSearchConfig && (
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Base URL
+              {t("Base URL")}
               {useEnvBaseUrl && (
                 <span className="ml-2 text-xs font-normal text-blue-500">
                   (using ${getEnvVarForBaseUrl(configType)})
@@ -336,7 +344,7 @@ export default function ConfigForm({
                   }}
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
-                Use .env
+                {t("Use .env")}
               </label>
             </div>
           </div>
@@ -345,10 +353,10 @@ export default function ConfigForm({
         {/* API Key */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            API Key
+            {t("API Key")}
             {isLocalProvider ? (
               <span className="ml-2 text-xs font-normal text-slate-400">
-                (optional for local providers)
+                ({t("optional for local providers")})
               </span>
             ) : useEnvApiKey ? (
               <span className="ml-2 text-xs font-normal text-blue-500">
@@ -365,7 +373,7 @@ export default function ConfigForm({
                 disabled={useEnvApiKey}
                 placeholder={
                   isLocalProvider
-                    ? "Not required"
+                    ? t("Not required")
                     : useEnvApiKey
                       ? `Using ${getEnvVarForApiKey(configType)} from .env`
                       : "sk-..."
@@ -401,7 +409,7 @@ export default function ConfigForm({
                   }}
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
-                Use .env
+                {t("Use .env")}
               </label>
             )}
           </div>
@@ -411,14 +419,14 @@ export default function ConfigForm({
         {!isSearchConfig && (
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Model
+              {t("Model")}
             </label>
             <input
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}
               required
-              placeholder="gpt-4o"
+              placeholder={t("gpt-4o")}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -428,12 +436,12 @@ export default function ConfigForm({
         {showDimensions && (
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Dimensions
+              {t("Dimensions")}
             </label>
             <input
               type="number"
-              value={dimensions}
-              onChange={(e) => setDimensions(parseInt(e.target.value))}
+              value={Number.isNaN(dimensions) ? "" : dimensions}
+              onChange={(e) => setDimensions(parseInt(e.target.value, 10))}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -443,7 +451,7 @@ export default function ConfigForm({
         {showVoice && (
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Voice
+              {t("Voice")}
             </label>
             <div className="relative">
               <select
@@ -478,7 +486,7 @@ export default function ConfigForm({
               ) : (
                 <TestTube className="w-4 h-4" />
               )}
-              Test Connection
+              {t("Test Connection")}
             </button>
           )}
         </div>
@@ -489,7 +497,7 @@ export default function ConfigForm({
             onClick={onCancel}
             className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
@@ -503,7 +511,7 @@ export default function ConfigForm({
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            {isEditMode ? "Save Changes" : "Add Configuration"}
+            {isEditMode ? t("Save Changes") : t("Add Configuration")}
           </button>
         </div>
       </div>

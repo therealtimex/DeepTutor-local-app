@@ -1,5 +1,6 @@
 import React from "react";
 import { TaskState } from "../../types/research";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
   Loader2,
@@ -57,6 +58,7 @@ export const TaskGrid: React.FC<TaskGridProps> = ({
   selectedTaskId,
   onTaskSelect,
 }) => {
+  const { t } = useTranslation();
   // Sort tasks: Active first, then running, then pending, then completed/failed
   const sortedTasks = Object.values(tasks).sort((a, b) => {
     const score = (task: TaskState) => {
@@ -72,7 +74,7 @@ export const TaskGrid: React.FC<TaskGridProps> = ({
     return (
       <div className="flex flex-col items-center justify-center p-8 text-slate-400 dark:text-slate-500 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
         <Activity className="w-8 h-8 mb-2 opacity-50" />
-        <p className="text-sm">No tasks initialized yet</p>
+        <p className="text-sm">{t("No tasks initialized yet")}</p>
       </div>
     );
   }
@@ -156,9 +158,9 @@ export const TaskGrid: React.FC<TaskGridProps> = ({
             <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2.5 min-h-[48px] border border-slate-100 dark:border-slate-600">
               <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
                 <span className="font-medium text-slate-400 dark:text-slate-500 mr-1">
-                  Current Action:
+                  {t("Current Action:")}
                 </span>
-                {task.currentAction || "Waiting to start..."}
+                {task.currentAction || t("Waiting to start...")}
               </p>
             </div>
 
@@ -166,7 +168,7 @@ export const TaskGrid: React.FC<TaskGridProps> = ({
             {task.toolsUsed.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-hidden">
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-medium mr-1">
-                  Tools:
+                  {t("Tools:")}
                 </span>
                 {task.toolsUsed.slice(0, 5).map((tool, idx) => (
                   <div

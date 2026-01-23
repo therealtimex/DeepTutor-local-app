@@ -16,6 +16,7 @@ interface OverviewTabProps {
   status: FullStatus | null;
   ports: PortsInfo | null;
   onRefresh: () => void;
+  t: (key: string) => string;
 }
 
 const services: {
@@ -34,6 +35,7 @@ export default function OverviewTab({
   status,
   ports,
   onRefresh,
+  t,
 }: OverviewTabProps) {
   return (
     <div className="p-6 space-y-6">
@@ -44,7 +46,7 @@ export default function OverviewTab({
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
-          Refresh
+          {t("Refresh")}
         </button>
       </div>
 
@@ -86,7 +88,7 @@ export default function OverviewTab({
                       {service.label}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {s?.active_config_name || "Not configured"}
+                      {s?.active_config_name || t("Not configured")}
                     </p>
                   </div>
                 </div>
@@ -100,7 +102,7 @@ export default function OverviewTab({
                 <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-slate-500 dark:text-slate-400">
-                      Model:
+                      {t("Model")}:
                     </span>
                     <span className="font-mono text-slate-700 dark:text-slate-300">
                       {s.model}
@@ -109,7 +111,7 @@ export default function OverviewTab({
                   {s.provider && (
                     <div className="flex items-center gap-2 text-sm mt-1">
                       <span className="text-slate-500 dark:text-slate-400">
-                        Provider:
+                        {t("Provider")}:
                       </span>
                       <span className="text-slate-700 dark:text-slate-300">
                         {s.provider}
@@ -129,13 +131,13 @@ export default function OverviewTab({
           <div className="flex items-center gap-2 mb-3">
             <Server className="w-5 h-5 text-slate-400" />
             <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-              Port Configuration
+              {t("Port Configuration")}
             </h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-sm text-slate-500 dark:text-slate-400">
-                Backend Port
+                {t("Backend Port")}
               </span>
               <p className="font-mono text-lg text-slate-700 dark:text-slate-300">
                 {ports.backend_port}
@@ -143,7 +145,7 @@ export default function OverviewTab({
             </div>
             <div>
               <span className="text-sm text-slate-500 dark:text-slate-400">
-                Frontend Port
+                {t("Frontend Port")}
               </span>
               <p className="font-mono text-lg text-slate-700 dark:text-slate-300">
                 {ports.frontend_port}

@@ -43,6 +43,7 @@ class MainSolver:
         api_key: str | None = None,
         base_url: str | None = None,
         api_version: str | None = None,
+        language: str | None = None,
         kb_name: str = "ai_textbook",
         output_base_dir: str | None = None,
     ):
@@ -55,6 +56,7 @@ class MainSolver:
             api_key: API key (if not provided, read from environment)
             base_url: API URL (if not provided, read from environment)
             api_version: API version (if not provided, read from environment)
+            language: Preferred language for prompts ("en"/"zh"/"cn")
             kb_name: Knowledge base name
             output_base_dir: Output base directory (optional, overrides config)
         """
@@ -63,6 +65,7 @@ class MainSolver:
         self._api_key = api_key
         self._base_url = base_url
         self._api_version = api_version
+        self._language = language
         self._kb_name = kb_name
         self._output_base_dir = output_base_dir
 
@@ -108,6 +111,7 @@ class MainSolver:
         api_version = self._api_version
         kb_name = self._kb_name
         output_base_dir = self._output_base_dir
+        language = self._language
 
         # Load config from config directory (main.yaml unified config)
         if config_path is None:
@@ -155,6 +159,11 @@ class MainSolver:
 
         if self.config is None or not isinstance(self.config, dict):
             self.config = {}
+
+        # Override system language from UI if provided
+        if language:
+            self.config.setdefault("system", {})
+            self.config["system"]["language"] = parse_language(language)
 
         # Override output directory config
         if output_base_dir:

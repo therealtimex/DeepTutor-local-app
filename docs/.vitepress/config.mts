@@ -4,19 +4,16 @@ export default defineConfig({
   title: "DeepTutor",
   description: "AI-Powered Personalized Learning Assistant",
 
-  // GitHub Pages 部署配置
   base: '/DeepTutor/',
 
   head: [
     ['link', { rel: 'icon', href: '/DeepTutor/logo.png' }]
   ],
 
-  // 忽略 localhost 链接检查（这些是示例地址，构建时不可访问）
   ignoreDeadLinks: [
     /^http:\/\/localhost/
   ],
 
-  // 国际化配置
   locales: {
     root: {
       label: 'English',
@@ -24,18 +21,24 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Home', link: '/' },
-          { text: 'Guide', link: '/guide/getting-started' },
-          { text: 'Features', link: '/features/overview' },
-          { text: 'Roadmap', link: '/roadmap' },
+          { text: 'Guide', link: '/guide/pre-config' },
+          { text: 'Contribute', link: '/contribution' },
           { text: 'GitHub', link: 'https://github.com/HKUDS/DeepTutor' }
         ],
         sidebar: {
           '/guide/': [
             {
-              text: 'Guide',
+              text: 'Getting Started',
               items: [
-                { text: 'Quick Start', link: '/guide/getting-started' },
-                { text: 'Configuration', link: '/guide/configuration' },
+                { text: 'Pre-Configuration', link: '/guide/pre-config' },
+                { text: 'Data Preparation', link: '/guide/data-preparation' },
+                { text: 'Local Installation', link: '/guide/local-start' },
+                { text: 'Docker Deployment', link: '/guide/docker-start' }
+              ]
+            },
+            {
+              text: 'Resources',
+              items: [
                 { text: 'Troubleshooting', link: '/guide/troubleshooting' }
               ]
             }
@@ -58,18 +61,24 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/zh/' },
-          { text: '指南', link: '/zh/guide/getting-started' },
-          { text: '功能', link: '/zh/features/overview' },
-          { text: '路线图', link: '/zh/roadmap' },
+          { text: '指南', link: '/zh/guide/pre-config' },
+          { text: '参与贡献', link: '/zh/contribution' },
           { text: 'GitHub', link: 'https://github.com/HKUDS/DeepTutor' }
         ],
         sidebar: {
           '/zh/guide/': [
             {
-              text: '指南',
+              text: '快速开始',
               items: [
-                { text: '快速开始', link: '/zh/guide/getting-started' },
-                { text: '配置说明', link: '/zh/guide/configuration' },
+                { text: '预配置', link: '/zh/guide/pre-config' },
+                { text: '数据准备', link: '/zh/guide/data-preparation' },
+                { text: '本地安装', link: '/zh/guide/local-start' },
+                { text: 'Docker 部署', link: '/zh/guide/docker-start' }
+              ]
+            },
+            {
+              text: '资源',
+              items: [
                 { text: '常见问题', link: '/zh/guide/troubleshooting' }
               ]
             }
@@ -83,17 +92,9 @@ export default defineConfig({
           message: '基于 AGPL-3.0 许可证发布',
           copyright: '© 2025-2026 香港大学数据智能实验室'
         },
-        // 中文界面文本
-        outline: {
-          label: '本页目录'
-        },
-        docFooter: {
-          prev: '上一篇',
-          next: '下一篇'
-        },
-        lastUpdated: {
-          text: '最后更新于'
-        },
+        outline: { label: '本页目录' },
+        docFooter: { prev: '上一篇', next: '下一篇' },
+        lastUpdated: { text: '最后更新于' },
         darkModeSwitchLabel: '外观',
         sidebarMenuLabel: '菜单',
         returnToTopLabel: '返回顶部',
@@ -104,10 +105,9 @@ export default defineConfig({
 
   themeConfig: {
     logo: '/logo.png',
-
     socialLinks: [
       { icon: 'github', link: 'https://github.com/HKUDS/DeepTutor' },
-      { icon: 'discord', link: 'https://discord.gg/zpP9cssj' },
+      { icon: 'discord', link: 'https://discord.gg/eRsjPgMU4t' },
       {
         icon: {
           svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.32.32 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.49.49 0 0 1 .176-.554C23.048 18.276 24 16.577 24 14.71c0-3.38-3.251-6.136-7.062-5.852zm-2.073 2.703c.536 0 .97.44.97.983a.976.976 0 0 1-.97.983.976.976 0 0 1-.97-.983c0-.542.434-.983.97-.983zm4.146 0c.536 0 .97.44.97.983a.976.976 0 0 1-.97.983.976.976 0 0 1-.97-.983c0-.542.434-.983.97-.983z"/></svg>'
@@ -116,9 +116,6 @@ export default defineConfig({
         ariaLabel: 'WeChat'
       }
     ],
-
-    search: {
-      provider: 'local'
-    }
+    search: { provider: 'local' }
   }
 })

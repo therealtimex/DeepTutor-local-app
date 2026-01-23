@@ -2,6 +2,7 @@
 
 import { Loader2, Play, ChevronRight, CheckCircle2 } from "lucide-react";
 import { SessionState } from "../types";
+import { useTranslation } from "react-i18next";
 
 interface ProgressPanelProps {
   sessionState: SessionState;
@@ -22,11 +23,12 @@ export default function ProgressPanel({
   onStartLearning,
   onNextKnowledge,
 }: ProgressPanelProps) {
+  const { t } = useTranslation();
   return (
     <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-          Learning Progress
+          {t("Learning Progress")}
         </span>
         <span className="text-xs text-slate-400 dark:text-slate-500">
           {sessionState.progress}%
@@ -40,8 +42,9 @@ export default function ProgressPanel({
       </div>
       {sessionState.knowledge_points.length > 0 && (
         <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
-          Knowledge Point {sessionState.current_index + 1} /{" "}
-          {sessionState.knowledge_points.length}
+          {t("Knowledge Point {n} / {total}")
+            .replace("{n}", String(sessionState.current_index + 1))
+            .replace("{total}", String(sessionState.knowledge_points.length))}
         </p>
       )}
 
@@ -56,12 +59,12 @@ export default function ProgressPanel({
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
+                {t("Generating...")}
               </>
             ) : (
               <>
                 <Play className="w-4 h-4" />
-                Start Learning
+                {t("Start Learning")}
               </>
             )}
           </button>
@@ -76,12 +79,12 @@ export default function ProgressPanel({
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Loading...
+                {t("Loading...")}
               </>
             ) : (
               <>
                 <ChevronRight className="w-4 h-4" />
-                Next
+                {t("Next")}
               </>
             )}
           </button>
@@ -96,12 +99,12 @@ export default function ProgressPanel({
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Generating Summary...
+                {t("Generating Summary...")}
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                Complete Learning
+                {t("Complete Learning")}
               </>
             )}
           </button>

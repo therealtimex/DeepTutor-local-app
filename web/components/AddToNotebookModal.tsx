@@ -10,6 +10,7 @@ import {
   Book,
   FolderOpen,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { apiUrl } from "@/lib/api";
 
 interface NotebookOption {
@@ -54,6 +55,7 @@ export default function AddToNotebookModal({
   metadata = {},
   kbName,
 }: AddToNotebookModalProps) {
+  const { t } = useTranslation();
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,7 @@ export default function AddToNotebookModal({
         <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-t-2xl">
           <h3 className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Book className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Add to Notebook
+            {t("Add to Notebook")}
           </h3>
           <button
             onClick={onClose}
@@ -174,18 +176,21 @@ export default function AddToNotebookModal({
                 <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
               <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">
-                Added Successfully!
+                {t("Added Successfully!")}
               </h4>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Record has been saved to {selectedIds.length} notebook
-                {selectedIds.length > 1 ? "s" : ""}
+                {t(
+                  selectedIds.length === 1
+                    ? "Record has been saved to {n} notebook"
+                    : "Record has been saved to {n} notebooks",
+                ).replace("{n}", String(selectedIds.length))}
               </p>
             </div>
           ) : loading ? (
             <div className="py-12 text-center">
               <Loader2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin mx-auto mb-2" />
               <p className="text-slate-500 dark:text-slate-400">
-                Loading notebooks...
+                {t("Loading notebooks...")}
               </p>
             </div>
           ) : (
@@ -193,7 +198,7 @@ export default function AddToNotebookModal({
               {/* Record Preview */}
               <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
                 <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  Record Preview
+                  {t("Record Preview")}
                 </div>
                 <h4 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                   {title}
@@ -207,14 +212,14 @@ export default function AddToNotebookModal({
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Select Notebooks
+                    {t("Select Notebooks")}
                   </label>
                   <button
                     onClick={() => setShowCreateForm(!showCreateForm)}
                     className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
-                    New Notebook
+                    {t("New Notebook")}
                   </button>
                 </div>
 
@@ -230,13 +235,13 @@ export default function AddToNotebookModal({
                           name: e.target.value,
                         }))
                       }
-                      placeholder="Notebook name"
+                      placeholder={t("Notebook name")}
                       className="w-full px-3 py-2 mb-2 border border-indigo-200 dark:border-indigo-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       autoFocus
                     />
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Color:
+                        {t("Color:")}
                       </span>
                       <div className="flex gap-1">
                         {COLORS.slice(0, 6).map((color) => (
@@ -260,7 +265,7 @@ export default function AddToNotebookModal({
                         onClick={() => setShowCreateForm(false)}
                         className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors"
                       >
-                        Cancel
+                        {t("Cancel")}
                       </button>
                       <button
                         onClick={handleCreateNotebook}
@@ -268,7 +273,7 @@ export default function AddToNotebookModal({
                         className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" />
-                        Create
+                        {t("Create")}
                       </button>
                     </div>
                   </div>
@@ -279,10 +284,10 @@ export default function AddToNotebookModal({
                   <div className="py-8 text-center">
                     <FolderOpen className="w-10 h-10 text-slate-200 dark:text-slate-600 mx-auto mb-2" />
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      No notebooks yet
+                      {t("No notebooks yet")}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500">
-                      Create your first notebook above
+                      {t("Create your first notebook above")}
                     </p>
                   </div>
                 ) : (
@@ -311,7 +316,7 @@ export default function AddToNotebookModal({
                             {nb.name}
                           </h4>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {nb.record_count} records
+                            {nb.record_count} {t("records")}
                           </p>
                         </div>
                         <div
@@ -339,15 +344,19 @@ export default function AddToNotebookModal({
           <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
             <span className="text-xs text-slate-500 dark:text-slate-400">
               {selectedIds.length > 0
-                ? `${selectedIds.length} notebook${selectedIds.length > 1 ? "s" : ""} selected`
-                : "Select at least one notebook"}
+                ? t(
+                    selectedIds.length === 1
+                      ? "{n} notebook selected"
+                      : "{n} notebooks selected",
+                  ).replace("{n}", String(selectedIds.length))
+                : t("Select at least one notebook")}
             </span>
             <div className="flex gap-2">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-sm"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 onClick={handleSave}
@@ -357,12 +366,12 @@ export default function AddToNotebookModal({
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
+                    {t("Saving...")}
                   </>
                 ) : (
                   <>
                     <Book className="w-4 h-4" />
-                    Add to Notebook
+                    {t("Add to Notebook")}
                   </>
                 )}
               </button>

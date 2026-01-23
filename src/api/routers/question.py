@@ -23,6 +23,7 @@ sys.path.insert(0, str(project_root))
 from src.logging import get_logger
 from src.services.config import load_config_with_main
 from src.services.llm.config import get_llm_config
+from src.services.settings.interface_settings import get_ui_language
 
 # Setup module logger with unified logging system (from config)
 project_root = Path(__file__).parent.parent.parent.parent
@@ -382,6 +383,7 @@ async def websocket_question_generate(websocket: WebSocket):
             base_url=base_url,
             api_version=api_version,
             kb_name=kb_name,
+            language=get_ui_language(default=config.get("system", {}).get("language", "en")),
             max_rounds=10,
             output_dir=str(output_base),
         )

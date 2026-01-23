@@ -20,7 +20,7 @@ import "katex/dist/katex.min.css";
 import { apiUrl } from "@/lib/api";
 import { processLatexContent } from "@/lib/latex";
 import { useGlobal } from "@/context/GlobalContext";
-import { getTranslation } from "@/lib/i18n";
+import { useTranslation } from "react-i18next";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -57,7 +57,7 @@ export default function ChatSessionDetail({
   onContinue,
 }: ChatSessionDetailProps) {
   const { uiSettings } = useGlobal();
-  const t = (key: string) => getTranslation(uiSettings.language, key);
+  const { t } = useTranslation();
 
   const [session, setSession] = useState<ChatSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +84,10 @@ export default function ChatSessionDetail({
         const data = await response.json();
         setSession(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        setError(
+          msg === "Failed to load session" ? t("Failed to load session") : msg,
+        );
       } finally {
         setLoading(false);
       }
@@ -170,17 +173,17 @@ export default function ChatSessionDetail({
                   <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
                     {session.settings.kb_name && (
                       <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
-                        KB: {session.settings.kb_name}
+                        {t("KB")}: {session.settings.kb_name}
                       </span>
                     )}
                     {session.settings.enable_rag && (
                       <span className="px-2.5 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                        RAG Enabled
+                        {t("RAG Enabled")}
                       </span>
                     )}
                     {session.settings.enable_web_search && (
                       <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-                        Web Search Enabled
+                        {t("Web Search Enabled")}
                       </span>
                     )}
                   </div>

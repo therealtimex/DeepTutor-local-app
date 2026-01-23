@@ -15,6 +15,7 @@ from src.api.utils.task_id_manager import TaskIDManager
 from src.logging import get_logger
 from src.services.config import load_config_with_main
 from src.services.llm import get_llm_config
+from src.services.settings.interface_settings import get_ui_language
 
 # Force stdout to use utf-8 to prevent encoding errors with emojis on Windows
 if sys.platform == "win32":
@@ -46,6 +47,10 @@ class OptimizeRequest(BaseModel):
 async def optimize_topic(request: OptimizeRequest):
     try:
         config = load_config()
+        config.setdefault("system", {})
+        config["system"]["language"] = get_ui_language(
+            default=config.get("system", {}).get("language", "en")
+        )
 
         # Inject API keys
         try:
@@ -111,6 +116,10 @@ async def websocket_research_run(websocket: WebSocket):
 
         # Use unified logger
         config = load_config()
+        config.setdefault("system", {})
+        config["system"]["language"] = get_ui_language(
+            default=config.get("system", {}).get("language", "en")
+        )
         try:
             # Get log_dir from config
             log_dir = config.get("paths", {}).get("user_log_dir") or config.get("logging", {}).get(

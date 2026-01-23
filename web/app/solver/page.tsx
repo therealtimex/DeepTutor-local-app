@@ -15,6 +15,7 @@ import {
   Search,
   Sparkles,
   FileText,
+  Trash2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -25,6 +26,7 @@ import { useGlobal } from "@/context/GlobalContext";
 import { API_BASE_URL, apiUrl } from "@/lib/api";
 import { processLatexContent } from "@/lib/latex";
 import AddToNotebookModal from "@/components/AddToNotebookModal";
+import { useTranslation } from "react-i18next";
 
 const resolveArtifactUrl = (url?: string | null, outputDir?: string) => {
   if (!url) return "";
@@ -53,7 +55,9 @@ const resolveArtifactUrl = (url?: string | null, outputDir?: string) => {
 };
 
 export default function SolverPage() {
-  const { solverState, setSolverState, startSolver } = useGlobal();
+  const { solverState, setSolverState, startSolver, newSolverSession } =
+    useGlobal();
+  const { t } = useTranslation();
 
   // Local state for input
   const [inputQuestion, setInputQuestion] = useState("");
@@ -174,9 +178,9 @@ export default function SolverPage() {
         <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            Smart Solver
+            {t("Smart Solver")}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <select
               value={solverState.selectedKb}
               onChange={(e) =>
@@ -193,6 +197,16 @@ export default function SolverPage() {
                 </option>
               ))}
             </select>
+            {solverState.messages.length > 0 && (
+              <button
+                onClick={newSolverSession}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                title={t("New Session")}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {t("New")}
+              </button>
+            )}
           </div>
         </div>
 
@@ -208,12 +222,12 @@ export default function SolverPage() {
                 <Bot className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                How can I help you today?
+                {t("How can I help you today?")}
               </h3>
               <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                I can help you solve complex STEM problems using multi-step
-                reasoning. Try asking about calculus, physics, or coding
-                algorithms.
+                {t(
+                  "I can help you solve complex STEM problems using multi-step reasoning. Try asking about calculus, physics, or coding algorithms.",
+                )}
               </p>
               <div className="grid grid-cols-1 gap-3 w-full text-sm">
                 {[
@@ -253,7 +267,8 @@ export default function SolverPage() {
                           resolveArtifactUrl(url, msg.outputDir)
                         }
                         components={{
-                          img: ({ node, src, ...props }) => (
+                          img: ({ node, src, alt, ...props }) => (
+                            // eslint-disable-next-line @next/next/no-img-element -- Dynamic images from markdown content
                             <img
                               {...props}
                               src={
@@ -262,6 +277,7 @@ export default function SolverPage() {
                                   msg.outputDir,
                                 ) || undefined
                               }
+                              alt={alt || "Solution image"}
                               loading="lazy"
                               className="max-w-full h-auto"
                             />
@@ -323,7 +339,8 @@ export default function SolverPage() {
                           resolveArtifactUrl(url, msg.outputDir)
                         }
                         components={{
-                          img: ({ node, src, ...props }) => (
+                          img: ({ node, src, alt, ...props }) => (
+                            // eslint-disable-next-line @next/next/no-img-element -- Dynamic images from markdown content
                             <img
                               {...props}
                               src={
@@ -332,6 +349,7 @@ export default function SolverPage() {
                                   msg.outputDir,
                                 ) || undefined
                               }
+                              alt={alt || "Solution image"}
                               loading="lazy"
                               className="max-w-full h-auto"
                             />
@@ -380,7 +398,7 @@ export default function SolverPage() {
                     <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 font-medium">
                         <CheckCircle2 className="w-4 h-4" />
-                        Verified by DeepTutor Logic Engine
+                        {t("Verified by DeepTutor Logic Engine")}
                       </div>
                       <button
                         onClick={() => {
@@ -409,7 +427,7 @@ export default function SolverPage() {
                         className="flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                       >
                         <Book className="w-3 h-3" />
-                        Add to Notebook
+                        {t("Add to Notebook")}
                       </button>
                     </div>
                   </div>
@@ -513,7 +531,7 @@ export default function SolverPage() {
             <input
               type="text"
               className="w-full px-5 py-4 pr-32 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200 shadow-inner"
-              placeholder="Ask a difficult question..."
+              placeholder={t("Ask a difficult question...")}
               value={inputQuestion}
               onChange={(e) => setInputQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleStart()}
@@ -534,7 +552,9 @@ export default function SolverPage() {
             </div>
           </div>
           <div className="text-center text-[10px] text-slate-400 dark:text-slate-500 mt-2">
-            DeepTutor can make mistakes. Please verify important information.
+            {t(
+              "DeepTutor can make mistakes. Please verify important information.",
+            )}
           </div>
         </div>
       </div>
@@ -545,7 +565,7 @@ export default function SolverPage() {
         <div className="px-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
             <Activity className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-            Logic Stream
+            {t("Logic Stream")}
           </div>
           {solverState.isSolving && (
             <span className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
@@ -553,7 +573,7 @@ export default function SolverPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
-              Running
+              {t("Running")}
             </span>
           )}
         </div>
@@ -565,7 +585,7 @@ export default function SolverPage() {
               <div className="flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span className="text-slate-500 dark:text-slate-400">
-                  Model:
+                  {t("Model:")}
                 </span>
                 <span className="font-medium text-slate-700 dark:text-slate-300">
                   {solverState.tokenStats.model}
@@ -675,7 +695,7 @@ export default function SolverPage() {
           <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
             <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <Terminal className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-              Activity Log
+              {t("Activity Log")}
             </h3>
             <span className="text-[10px] text-slate-400 dark:text-slate-500">
               {solverState.logs.length} entries
@@ -689,7 +709,7 @@ export default function SolverPage() {
             {solverState.logs.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-3 py-12">
                 <Activity className="w-10 h-10 opacity-20" />
-                <p className="text-sm">Waiting for logic execution...</p>
+                <p className="text-sm">{t("Waiting for logic execution...")}</p>
               </div>
             )}
 

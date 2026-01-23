@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Wand2,
   Minimize2,
@@ -22,7 +23,7 @@ import {
   ListOrdered,
   Quote,
   Link,
-  Image,
+  Image as ImageIcon,
   Table,
   Minus,
   Download,
@@ -53,6 +54,12 @@ import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
 import { processLatexContent } from "@/lib/latex";
+import {
+  loadFromStorage,
+  saveToStorage,
+  STORAGE_KEYS,
+} from "@/lib/persistence";
+import { debounce } from "@/lib/debounce";
 
 interface CoWriterEditorProps {
   initialValue?: string;
@@ -63,13 +70,57 @@ const AI_MARK_REGEX = /<span\s+data-rough-notation="[^"]+">([^<]*)<\/span>/g;
 const AI_MARK_OPEN_TAG = /<span\s+data-rough-notation="[^"]+">/g;
 const AI_MARK_CLOSE_TAG = /<\/span>/g;
 
+// Default content for new documents
+const DEFAULT_COWRITER_CONTENT =
+  "# Welcome to Co-Writer\n\nSelect text to see the magic happen.\n\n## Features\n\n- **Bold** text with Ctrl+B\n- *Italic* text with Ctrl+I\n- Underline with Ctrl+U\n- Highlight with Ctrl+H\n- AI-powered editing and auto-marking\n";
+
 export default function CoWriterEditor({
   initialValue = "",
 }: CoWriterEditorProps) {
+  const { t } = useTranslation();
+  // Track hydration to avoid SSR mismatch
+  const isHydrated = useRef(false);
+
+  // Initialize with default content (same on server and client)
   const [content, setContent] = useState(
-    initialValue ||
-      "# Welcome to Co-Writer\n\nSelect text to see the magic happen.\n\n## Features\n\n- **Bold** text with Ctrl+B\n- *Italic* text with Ctrl+I\n- <u>Underline</u> with Ctrl+U\n- <mark>Highlight</mark> with Ctrl+H\n- AI-powered editing and auto-marking\n",
+    initialValue || DEFAULT_COWRITER_CONTENT,
   );
+
+  // Debounced save for content
+  const saveContent = useCallback(
+    debounce((text: string) => {
+      if (!isHydrated.current) return;
+      saveToStorage(STORAGE_KEYS.COWRITER_CONTENT, text);
+    }, 1000), // 1 second debounce for content to avoid too frequent saves while typing
+    [],
+  );
+
+  // Restore persisted content after hydration
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // If initialValue was provided, don't load from storage
+    if (initialValue) {
+      isHydrated.current = true;
+      return;
+    }
+
+    const persistedContent = loadFromStorage<string>(
+      STORAGE_KEYS.COWRITER_CONTENT,
+      DEFAULT_COWRITER_CONTENT,
+    );
+    if (persistedContent !== DEFAULT_COWRITER_CONTENT) {
+      setContent(persistedContent);
+    }
+    isHydrated.current = true;
+  }, [initialValue]);
+
+  // Auto-save content on change (only after hydration)
+  useEffect(() => {
+    if (isHydrated.current) {
+      saveContent(content);
+    }
+  }, [content, saveContent]);
+
   const [selection, setSelection] = useState<{
     start: number;
     end: number;
@@ -337,6 +388,7 @@ export default function CoWriterEditor({
       // When restoring, need to map edits back to original content
       setRawContent("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only trigger on hideAiMarks toggle, not content changes
   }, [hideAiMarks]);
 
   // Merge edits with tags - smart AI mark protection
@@ -1265,32 +1317,32 @@ export default function CoWriterEditor({
             <ToolbarButton
               icon={<Bold className="w-4 h-4" />}
               onClick={() => wrapSelection("**", "**")}
-              title="Bold (Ctrl+B)"
+              title={t("Bold (Ctrl+B)")}
             />
             <ToolbarButton
               icon={<Italic className="w-4 h-4" />}
               onClick={() => wrapSelection("*", "*")}
-              title="Italic (Ctrl+I)"
+              title={t("Italic (Ctrl+I)")}
             />
             <ToolbarButton
               icon={<UnderlineIcon className="w-4 h-4" />}
               onClick={() => wrapSelection("<u>", "</u>")}
-              title="Underline (Ctrl+U)"
+              title={t("Underline (Ctrl+U)")}
             />
             <ToolbarButton
               icon={<Highlighter className="w-4 h-4" />}
               onClick={() => wrapSelection("<mark>", "</mark>")}
-              title="Highlight (Ctrl+H)"
+              title={t("Highlight (Ctrl+H)")}
             />
             <ToolbarButton
               icon={<Strikethrough className="w-4 h-4" />}
               onClick={() => wrapSelection("~~", "~~")}
-              title="Strikethrough (Ctrl+Shift+S)"
+              title={t("Strikethrough (Ctrl+Shift+S)")}
             />
             <ToolbarButton
               icon={<Code className="w-4 h-4" />}
               onClick={() => wrapSelection("`", "`")}
-              title="Inline Code"
+              title={t("Inline Code")}
             />
           </div>
 
@@ -1301,12 +1353,12 @@ export default function CoWriterEditor({
             <ToolbarButton
               icon={<Heading1 className="w-4 h-4" />}
               onClick={() => toggleLinePrefix("# ")}
-              title="Heading 1"
+              title={t("Heading 1")}
             />
             <ToolbarButton
               icon={<Heading2 className="w-4 h-4" />}
               onClick={() => toggleLinePrefix("## ")}
-              title="Heading 2"
+              title={t("Heading 2")}
             />
           </div>
 
@@ -1317,17 +1369,17 @@ export default function CoWriterEditor({
             <ToolbarButton
               icon={<List className="w-4 h-4" />}
               onClick={() => toggleLinePrefix("- ")}
-              title="Bullet List"
+              title={t("Bullet List")}
             />
             <ToolbarButton
               icon={<ListOrdered className="w-4 h-4" />}
               onClick={() => toggleLinePrefix("1. ")}
-              title="Numbered List"
+              title={t("Numbered List")}
             />
             <ToolbarButton
               icon={<Quote className="w-4 h-4" />}
               onClick={() => toggleLinePrefix("> ")}
-              title="Quote"
+              title={t("Quote")}
             />
           </div>
 
@@ -1338,12 +1390,12 @@ export default function CoWriterEditor({
             <ToolbarButton
               icon={<Link className="w-4 h-4" />}
               onClick={() => wrapSelection("[", "](url)")}
-              title="Link"
+              title={t("Link")}
             />
             <ToolbarButton
-              icon={<Image className="w-4 h-4" />}
+              icon={<ImageIcon className="w-4 h-4" />}
               onClick={() => wrapSelection("![", "](url)")}
-              title="Image"
+              title={t("Image")}
             />
             <ToolbarButton
               icon={<Minus className="w-4 h-4" />}
@@ -1357,7 +1409,7 @@ export default function CoWriterEditor({
                     content.substring(pos),
                 );
               }}
-              title="Horizontal Rule"
+              title={t("Horizontal Rule")}
             />
           </div>
 
@@ -1367,10 +1419,10 @@ export default function CoWriterEditor({
           <button
             onClick={() => setShowImportModal(true)}
             className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all"
-            title="Import from Notebook"
+            title={t("Import from Notebook")}
           >
             <Import className="w-3.5 h-3.5" />
-            Import
+            {t("Import")}
           </button>
 
           <div className="flex-1" />
@@ -1393,12 +1445,14 @@ export default function CoWriterEditor({
                 {backendConnected ? (
                   <>
                     <Wifi className="w-3 h-3" />
-                    <span className="hidden sm:inline">Connected</span>
+                    <span className="hidden sm:inline">{t("Connected")}</span>
                   </>
                 ) : (
                   <>
                     <WifiOff className="w-3 h-3" />
-                    <span className="hidden sm:inline">Disconnected</span>
+                    <span className="hidden sm:inline">
+                      {t("Disconnected")}
+                    </span>
                   </>
                 )}
               </div>
@@ -1411,11 +1465,11 @@ export default function CoWriterEditor({
           <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Editor
+                {t("Editor")}
               </div>
               {hideAiMarks && (
                 <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">
-                  Marks Hidden
+                  {t("Marks Hidden")}
                 </span>
               )}
             </div>
@@ -1434,7 +1488,7 @@ export default function CoWriterEditor({
               onChange={(e) => handleContentChange(e.target.value)}
               onMouseUp={handleMouseUp}
               className="w-full h-full min-h-full p-4 resize-none outline-none font-mono text-sm leading-relaxed text-slate-800 dark:text-slate-200 bg-transparent placeholder-slate-400 dark:placeholder-slate-500"
-              placeholder="Type your markdown here..."
+              placeholder={t("Type your markdown here...")}
               style={{ minHeight: "100%" }}
             />
           </div>
@@ -1457,13 +1511,13 @@ export default function CoWriterEditor({
             <div className="p-3 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 flex justify-between items-center rounded-t-xl">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
                 <Sparkles className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                AI Edit Assistant
+                {t("AI Edit Assistant")}
               </div>
               <button
                 onClick={() => setPopover(null)}
                 className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                title="Close"
-                aria-label="Close dialog"
+                title={t("Close")}
+                aria-label={t("Close dialog")}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1472,19 +1526,19 @@ export default function CoWriterEditor({
             <div className="p-4 space-y-4">
               {/* Selected Text Preview */}
               <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 p-2 rounded-lg border border-slate-100 dark:border-slate-600 line-clamp-2 italic">
-                "{selection?.text}"
+                &quot;{selection?.text}&quot;
               </div>
 
               {/* Instruction Input */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Instruction (Optional)
+                  {t("Instruction (Optional)")}
                 </label>
                 <input
                   type="text"
                   value={instruction}
                   onChange={(e) => setInstruction(e.target.value)}
-                  placeholder="e.g. Make it more formal..."
+                  placeholder={t("e.g. Make it more formal...")}
                   className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
                 />
               </div>
@@ -1493,7 +1547,7 @@ export default function CoWriterEditor({
               {selectedAction !== "automark" && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                    Context Source (Optional)
+                    {t("Context Source (Optional)")}
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -1501,14 +1555,14 @@ export default function CoWriterEditor({
                       className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs border rounded-lg transition-all ${source === "rag" ? "bg-purple-50 dark:bg-purple-900/40 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300" : "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"}`}
                     >
                       <Database className="w-3 h-3" />
-                      RAG
+                      {t("RAG")}
                     </button>
                     <button
                       onClick={() => setSource(source === "web" ? null : "web")}
                       className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs border rounded-lg transition-all ${source === "web" ? "bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300" : "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"}`}
                     >
                       <Globe className="w-3 h-3" />
-                      Web
+                      {t("Web")}
                     </button>
                   </div>
                 </div>
@@ -1540,7 +1594,7 @@ export default function CoWriterEditor({
                     className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-[10px] font-medium border-2 ${selectedAction === "rewrite" ? "bg-purple-50 dark:bg-purple-900/40 border-purple-400 dark:border-purple-600 text-purple-600 dark:text-purple-300" : "border-transparent text-slate-600 dark:text-slate-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-300"}`}
                   >
                     <Wand2 className="w-4 h-4" />
-                    Rewrite
+                    {t("Rewrite")}
                   </button>
                   <button
                     onClick={() => setSelectedAction("shorten")}
@@ -1548,7 +1602,7 @@ export default function CoWriterEditor({
                     className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-[10px] font-medium border-2 ${selectedAction === "shorten" ? "bg-amber-50 dark:bg-amber-900/40 border-amber-400 dark:border-amber-600 text-amber-600 dark:text-amber-300" : "border-transparent text-slate-600 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-300"}`}
                   >
                     <Minimize2 className="w-4 h-4" />
-                    Shorten
+                    {t("Shorten")}
                   </button>
                   <button
                     onClick={() => setSelectedAction("expand")}
@@ -1556,7 +1610,7 @@ export default function CoWriterEditor({
                     className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-[10px] font-medium border-2 ${selectedAction === "expand" ? "bg-blue-50 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-600 dark:text-blue-300" : "border-transparent text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-300"}`}
                   >
                     <Maximize2 className="w-4 h-4" />
-                    Expand
+                    {t("Expand")}
                   </button>
                   <button
                     onClick={() => setSelectedAction("automark")}
@@ -1564,7 +1618,7 @@ export default function CoWriterEditor({
                     className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-[10px] font-medium border-2 ${selectedAction === "automark" ? "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-400 dark:border-emerald-600 text-emerald-600 dark:text-emerald-300" : "border-transparent text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-300"}`}
                   >
                     <PenTool className="w-4 h-4" />
-                    AI Mark
+                    {t("AI Mark")}
                   </button>
                 </div>
 
@@ -1577,16 +1631,19 @@ export default function CoWriterEditor({
                   {isProcessing ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
+                      {t("Processing...")}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      Apply{" "}
-                      {selectedAction === "automark"
-                        ? "AI Mark"
-                        : selectedAction.charAt(0).toUpperCase() +
-                          selectedAction.slice(1)}
+                      {t("Apply")}{" "}
+                      {selectedAction === "rewrite"
+                        ? t("Rewrite")
+                        : selectedAction === "shorten"
+                          ? t("Shorten")
+                          : selectedAction === "expand"
+                            ? t("Expand")
+                            : t("AI Mark")}
                     </>
                   )}
                 </button>
@@ -1606,12 +1663,12 @@ export default function CoWriterEditor({
           <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Preview
+                {t("Preview")}
               </div>
               <div className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-purple-400" />
                 <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                  Live Preview · Synced Scroll
+                  {t("Live Preview · Synced Scroll")}
                 </span>
               </div>
             </div>
@@ -1621,16 +1678,16 @@ export default function CoWriterEditor({
               <button
                 onClick={() => setShowNotebookModal(true)}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-all"
-                title="Save to Notebook"
+                title={t("Save to Notebook")}
               >
                 <Book className="w-3.5 h-3.5" />
-                Save
+                {t("Save")}
               </button>
               <Divider />
               <button
                 onClick={() => setHideAiMarks(!hideAiMarks)}
                 className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-all ${hideAiMarks ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"}`}
-                title={hideAiMarks ? "Show AI Marks" : "Hide AI Marks"}
+                title={hideAiMarks ? t("Show AI Marks") : t("Hide AI Marks")}
               >
                 {hideAiMarks ? (
                   <Eye className="w-3.5 h-3.5" />
@@ -1642,7 +1699,7 @@ export default function CoWriterEditor({
               <button
                 onClick={exportMarkdown}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all"
-                title="Export Markdown"
+                title={t("Export Markdown")}
               >
                 <FileText className="w-3.5 h-3.5" />
                 .md
@@ -1651,7 +1708,7 @@ export default function CoWriterEditor({
                 onClick={exportPDF}
                 disabled={isProcessing}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all disabled:opacity-50"
-                title="Export PDF"
+                title={t("Export PDF")}
               >
                 <Download className="w-3.5 h-3.5" />
                 .pdf
@@ -1660,7 +1717,7 @@ export default function CoWriterEditor({
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-all ${showHistory ? "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400" : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"}`}
-                title="History"
+                title={t("History")}
               >
                 <History className="w-3.5 h-3.5" />
               </button>
@@ -1792,7 +1849,7 @@ export default function CoWriterEditor({
               <div className="absolute inset-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col animate-in fade-in duration-200">
                 <div className="p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                   <h3 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                    Version History
+                    {t("Version History")}
                   </h3>
                   <button
                     onClick={() => setShowHistory(false)}
@@ -1804,7 +1861,7 @@ export default function CoWriterEditor({
                 <div className="flex-1 overflow-y-auto p-2">
                   {operationHistory.length === 0 ? (
                     <div className="text-center py-10 text-slate-400 dark:text-slate-500 text-sm">
-                      No history available
+                      {t("No history available")}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1832,7 +1889,8 @@ export default function CoWriterEditor({
                             </span>
                           </div>
                           <div className="text-xs text-slate-600 dark:text-slate-400 truncate mb-1">
-                            "{op.input?.original_text?.substring(0, 35)}..."
+                            &quot;{op.input?.original_text?.substring(0, 35)}
+                            ...&quot;
                           </div>
                           <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500">
                             {op.source && (
@@ -1870,12 +1928,12 @@ export default function CoWriterEditor({
               )}
               <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <Radio className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                Podcast Narration
+                {t("Podcast Narration")}
               </div>
             </div>
             {!isPodcastExpanded && (
               <span className="text-[10px] text-slate-400 dark:text-slate-500 px-2">
-                Click to expand
+                {t("Click to expand")}
               </span>
             )}
           </div>
@@ -1887,7 +1945,7 @@ export default function CoWriterEditor({
                   {ttsAvailable === false && (
                     <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
-                      Script only (TTS not configured)
+                      {t("Script only (TTS not configured)")}
                     </span>
                   )}
                 </div>
@@ -1900,7 +1958,9 @@ export default function CoWriterEditor({
                       onClick={async () => {
                         if (!content.trim()) {
                           setNarrationError(
-                            "Current note is empty, cannot generate narration.",
+                            t(
+                              "Current note is empty, cannot generate narration.",
+                            ),
                           );
                           return;
                         }
@@ -1942,7 +2002,9 @@ export default function CoWriterEditor({
                         } catch (e: any) {
                           setNarrationError(
                             e?.message ||
-                              "Failed to generate narration, please try again.",
+                              t(
+                                "Failed to generate narration, please try again.",
+                              ),
                           );
                         } finally {
                           setNarrationLoading(false);
@@ -1954,12 +2016,12 @@ export default function CoWriterEditor({
                       {narrationLoading ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          Generating Podcast
+                          {t("Generating Podcast")}
                         </>
                       ) : (
                         <>
                           <Mic className="w-3.5 h-3.5" />
-                          Generate Podcast
+                          {t("Generate Podcast")}
                         </>
                       )}
                     </button>
@@ -1972,7 +2034,7 @@ export default function CoWriterEditor({
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-50"
                     >
                       <Book className="w-3.5 h-3.5" />
-                      Save Podcast to Notebook
+                      {t("Save Podcast to Notebook")}
                     </button>
                   </div>
                   {narrationError && (
@@ -1988,7 +2050,9 @@ export default function CoWriterEditor({
                       </p>
                     ) : (
                       <span className="text-slate-400 dark:text-slate-500">
-                        After generation, the narration script will appear here.
+                        {t(
+                          "After generation, the narration script will appear here.",
+                        )}
                       </span>
                     )}
                   </div>
@@ -1998,7 +2062,7 @@ export default function CoWriterEditor({
                   <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-2 h-20 overflow-y-auto">
                     <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                       <Headphones className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      Key Points
+                      {t("Key Points")}
                     </div>
                     {narrationKeyPoints && narrationKeyPoints.length > 0 ? (
                       <ul className="list-disc pl-4 text-[11px] text-slate-700 dark:text-slate-300 space-y-0.5">
@@ -2010,7 +2074,9 @@ export default function CoWriterEditor({
                       </ul>
                     ) : (
                       <div className="text-[11px] text-slate-400 dark:text-slate-500">
-                        After generation, 3-5 key points will be listed here.
+                        {t(
+                          "After generation, 3-5 key points will be listed here.",
+                        )}
                       </div>
                     )}
                   </div>
@@ -2018,7 +2084,7 @@ export default function CoWriterEditor({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                         <Headphones className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                        Podcast Audio
+                        {t("Podcast Audio")}
                       </div>
                       {audioInfo?.voice && (
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 bg-purple-50 dark:bg-purple-900/40 px-1.5 py-0.5 rounded-full">
@@ -2037,14 +2103,18 @@ export default function CoWriterEditor({
                           }}
                         >
                           <source src={audioInfo.audioUrl} type="audio/mpeg" />
-                          Your browser does not support the audio element.
+                          {t(
+                            "Your browser does not support the audio element.",
+                          )}
                         </audio>
                       </div>
                     ) : (
                       <div className="text-[11px] text-slate-400 dark:text-slate-500 italic py-2">
                         {ttsAvailable === false
-                          ? "TTS not configured, script generation only."
-                          : "After generation, you can play the podcast audio here."}
+                          ? t("TTS not configured, script generation only.")
+                          : t(
+                              "After generation, you can play the podcast audio here.",
+                            )}
                       </div>
                     )}
                   </div>
@@ -2061,7 +2131,7 @@ export default function CoWriterEditor({
           <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 border border-slate-200 dark:border-slate-700">
             <Loader2 className="w-8 h-8 text-purple-600 dark:text-purple-400 animate-spin" />
             <span className="font-medium text-slate-700 dark:text-slate-200">
-              Exporting...
+              {t("Exporting...")}
             </span>
           </div>
         </div>
