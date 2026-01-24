@@ -12,44 +12,11 @@ from typing import Any, Dict
 from realtimex_sdk import LLMPermissionError, LLMProviderError
 
 from src.logging import get_logger
+from src.utils.realtimex import get_realtimex_sdk
 
 from .base import BaseEmbeddingAdapter, EmbeddingRequest, EmbeddingResponse
 
 logger = get_logger("RealTimeXEmbeddingAdapter")
-
-# Global SDK instance (lazy-initialized)
-_sdk_instance = None
-
-
-def _get_sdk():
-    """
-    Get or create SDK instance.
-
-    Returns:
-        RealtimeXSDK: Initialized SDK instance
-
-    Raises:
-        ImportError: If realtimex-sdk is not installed
-    """
-    global _sdk_instance
-    if _sdk_instance is None:
-        try:
-            from realtimex_sdk import RealtimeXSDK, SDKConfig
-
-            _sdk_instance = RealtimeXSDK(
-                config=SDKConfig(
-                    permissions=["llm.embed"],
-                )
-            )
-            logger.info("RealTimeX SDK initialized for embeddings")
-        except ImportError as e:
-            logger.error("RealTimeX SDK not installed. Install with: pip install realtimex-sdk")
-            raise ImportError(
-                "realtimex-sdk is required for RealTimeX integration. "
-                "Install with: pip install realtimex-sdk"
-            ) from e
-
-    return _sdk_instance
 
 
 class RealTimeXEmbeddingAdapter(BaseEmbeddingAdapter):
@@ -91,7 +58,7 @@ class RealTimeXEmbeddingAdapter(BaseEmbeddingAdapter):
         Raises:
             Exception: If SDK request fails or permission denied
         """
-        sdk = _get_sdk()
+        sdk = get_realtimex_sdk()
 
         # Use model from request, fallback to adapter config
         model = request.model or self.model

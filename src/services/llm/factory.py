@@ -38,6 +38,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 import tenacity
 
 from src.logging.logger import get_logger
+from src.utils.realtimex import should_use_realtimex_sdk
 
 from . import cloud_provider, local_provider
 from .config import get_llm_config
@@ -47,7 +48,6 @@ from .exceptions import (
     LLMRateLimitError,
     LLMTimeoutError,
 )
-from .realtimex_detection import should_use_realtimex_sdk
 from .utils import is_local_llm_server
 
 # Initialize logger
@@ -162,18 +162,15 @@ async def complete(
         binding = binding or config.binding or "openai"
 
     # ROUTING LOGIC (Priority order):
-    
+
     # 1. RealTimeX SDK (highest priority)
     if should_use_realtimex_sdk():
         from . import realtimex_provider
+
         return await realtimex_provider.complete(
-            prompt=prompt,
-            system_prompt=system_prompt,
-            model=model,
-            messages=messages,
-            **kwargs
+            prompt=prompt, system_prompt=system_prompt, model=model, messages=messages, **kwargs
         )
-    
+
     # 2. Determine which provider to use (local vs cloud)
     use_local = _should_use_local(base_url)
 
@@ -305,20 +302,17 @@ async def stream(
         binding = binding or config.binding or "openai"
 
     # ROUTING LOGIC (Priority order):
-    
+
     # 1. RealTimeX SDK (highest priority)
     if should_use_realtimex_sdk():
         from . import realtimex_provider
+
         async for chunk in realtimex_provider.stream(
-            prompt=prompt,
-            system_prompt=system_prompt,
-            model=model,
-            messages=messages,
-            **kwargs
+            prompt=prompt, system_prompt=system_prompt, model=model, messages=messages, **kwargs
         ):
             yield chunk
         return
-    
+
     # 2. Determine which provider to use (local vs cloud)
     use_local = _should_use_local(base_url)
 

@@ -36,7 +36,7 @@ class EmbeddingClient:
         self.manager: EmbeddingProviderManager = get_embedding_provider_manager()
 
         # ROUTING LOGIC: Check for RealTimeX environment first
-        from src.services.llm.realtimex_detection import should_use_realtimex_sdk
+        from src.utils.realtimex import should_use_realtimex_sdk
 
         if should_use_realtimex_sdk():
             from .adapters.realtimex import RealTimeXEmbeddingAdapter

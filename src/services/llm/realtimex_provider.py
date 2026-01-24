@@ -12,47 +12,14 @@ and handles error translation from SDK exceptions to DeepTutor exception hierarc
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Optional
 
 from src.logging import get_logger
+from src.utils.realtimex import get_realtimex_sdk
 
 from .exceptions import LLMAPIError, LLMRateLimitError, RealTimeXError, RealTimeXPermissionError
 
 if TYPE_CHECKING:
-    from realtimex_sdk import ChatMessage, RealtimeXSDK
-
-# Global SDK instance (lazy-initialized)
-_sdk_instance: Optional["RealtimeXSDK"] = None
+    from realtimex_sdk import ChatMessage
 
 logger = get_logger("RealTimeXProvider")
-
-
-def _get_sdk():
-    """
-    Get or create SDK instance.
-
-    Returns:
-        RealtimeXSDK: Initialized SDK instance
-
-    Raises:
-        ImportError: If realtimex-sdk is not installed
-    """
-    global _sdk_instance
-    if _sdk_instance is None:
-        try:
-            from realtimex_sdk import RealtimeXSDK, SDKConfig
-
-            _sdk_instance = RealtimeXSDK(
-                config=SDKConfig(
-                    permissions=["llm.chat", "llm.providers"],
-                )
-            )
-            logger.info("RealTimeX SDK initialized successfully")
-        except ImportError as e:
-            logger.error("RealTimeX SDK not installed. Install with: pip install realtimex-sdk")
-            raise ImportError(
-                "realtimex-sdk is required for RealTimeX integration. "
-                "Install with: pip install realtimex-sdk"
-            ) from e
-
-    return _sdk_instance
 
 
 def _build_messages(
@@ -153,7 +120,7 @@ async def complete(
     """
     from realtimex_sdk import ChatOptions
 
-    sdk = _get_sdk()
+    sdk = get_realtimex_sdk()
 
     # Build messages array
     chat_messages = _build_messages(prompt, system_prompt, messages)
@@ -236,7 +203,7 @@ async def stream(
     """
     from realtimex_sdk import ChatOptions
 
-    sdk = _get_sdk()
+    sdk = get_realtimex_sdk()
 
     # Build messages array
     chat_messages = _build_messages(prompt, system_prompt, messages)
