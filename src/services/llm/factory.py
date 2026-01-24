@@ -21,9 +21,10 @@ CloudProvider      LocalProvider
               ↓                   ↓
 OpenAI/DeepSeek/etc    LM Studio/Ollama/etc
 
-Routing:
-- Automatically routes to local_provider for local URLs (localhost, 127.0.0.1, etc.)
-- Routes to cloud_provider for all other URLs
+Routing (Priority Order):
+1. RealTimeX SDK (if RTX_APP_ID detected)
+2. Local Provider (for localhost/127.0.0.1 URLs)
+3. Cloud Provider (default)
 
 Retry Mechanism:
 - Automatic retry with exponential backoff for transient errors
@@ -46,6 +47,7 @@ from .exceptions import (
     LLMRateLimitError,
     LLMTimeoutError,
 )
+from .realtimex_detection import should_use_realtimex_sdk
 from .utils import is_local_llm_server
 
 # Initialize logger
@@ -159,7 +161,20 @@ async def complete(
         api_version = api_version or config.api_version
         binding = binding or config.binding or "openai"
 
-    # Determine which provider to use
+    # ROUTING LOGIC (Priority order):
+    
+    # 1. RealTimeX SDK (highest priority)
+    if should_use_realtimex_sdk():
+        from . import realtimex_provider
+        return await realtimex_provider.complete(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            model=model,
+            messages=messages,
+            **kwargs
+        )
+    
+    # 2. Determine which provider to use (local vs cloud)
     use_local = _should_use_local(base_url)
 
     # Define helper to determine if a generic LLMAPIError is retriable
@@ -289,7 +304,22 @@ async def stream(
         api_version = api_version or config.api_version
         binding = binding or config.binding or "openai"
 
-    # Determine which provider to use
+    # ROUTING LOGIC (Priority order):
+    
+    # 1. RealTimeX SDK (highest priority)
+    if should_use_realtimex_sdk():
+        from . import realtimex_provider
+        async for chunk in realtimex_provider.stream(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            model=model,
+            messages=messages,
+            **kwargs
+        ):
+            yield chunk
+        return
+    
+    # 2. Determine which provider to use (local vs cloud)
     use_local = _should_use_local(base_url)
 
     # Build call kwargs
