@@ -44,7 +44,7 @@ dependencies = [
     # Academic and research tools
     "arxiv>=2.0.0",
     # RealTimeX SDK
-    "realtimex-sdk>=1.1.0",
+    "realtimex-sdk>=1.1.2",
 ]
 
 # Optional dependencies for different providers and features
