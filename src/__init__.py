@@ -17,7 +17,7 @@ Core Modules:
 Usage:
     # Import as a package for integration with other services
     from src.api.main import app
-    
+
     # Or use individual modules
     from src.services.rag import RAGService
     from src.agents import ChatAgent
@@ -30,7 +30,7 @@ __package_name__ = "realtimex-deeptutor"
 # These are imported lazily to avoid circular imports and heavy startup
 __all__ = [
     "agents",
-    "api", 
+    "api",
     "services",
     "knowledge",
     "logging",

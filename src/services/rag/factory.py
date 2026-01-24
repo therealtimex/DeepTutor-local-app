@@ -72,6 +72,7 @@ def _init_pipelines():
     )
     _PIPELINES_INITIALIZED = True
 
+
 # Pipeline metadata for list_pipelines()
 _PIPELINE_INFO: Dict[str, Dict[str, str]] = {
     "realtimex": {
@@ -88,14 +89,16 @@ _PIPELINE_INFO: Dict[str, Dict[str, str]] = {
     },
 }
 
+
 # Try to register optional pipelines
 def _register_optional_pipelines():
     """Register pipelines that have optional dependencies."""
     global _PIPELINES, _PIPELINE_INFO
-    
+
     # Try RAGAnything (requires raganything package)
     try:
         from .pipelines.raganything import RAGAnythingPipeline
+
         _PIPELINES["raganything"] = RAGAnythingPipeline
         _PIPELINE_INFO["raganything"] = {
             "id": "raganything",
@@ -112,10 +115,11 @@ def _register_optional_pipelines():
             "available": False,
         }
         logger.debug(f"RAGAnything not available: {e}")
-    
+
     # Try LlamaIndex (requires llama-index package)
     try:
         from .pipelines import llamaindex
+
         _PIPELINES["llamaindex"] = llamaindex.LlamaIndexPipeline
         _PIPELINE_INFO["llamaindex"] = {
             "id": "llamaindex",
@@ -136,7 +140,6 @@ def _register_optional_pipelines():
 
 # Register optional pipelines at module load
 _register_optional_pipelines()
-
 
 
 def get_pipeline(name: str = "realtimex", kb_base_dir: Optional[str] = None, **kwargs):
