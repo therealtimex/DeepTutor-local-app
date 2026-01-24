@@ -3914,6 +3914,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "pyyaml" },
+    { name = "realtimex-sdk" },
     { name = "requests" },
     { name = "tenacity" },
     { name = "tiktoken" },
@@ -3987,6 +3988,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "raganything", marker = "extra == 'all'", specifier = ">=0.1.0" },
     { name = "raganything", marker = "extra == 'raganything'", specifier = ">=0.1.0" },
+    { name = "realtimex-sdk", specifier = ">=1.1.0" },
     { name = "requests", specifier = ">=2.32.2" },
     { name = "tenacity", specifier = ">=8.0.0" },
     { name = "tiktoken", specifier = ">=0.5.0" },
@@ -3994,6 +3996,18 @@ requires-dist = [
     { name = "websockets", specifier = ">=12.0" },
 ]
 provides-extras = ["anthropic", "dashscope", "search", "raganything", "llamaindex", "academic", "all", "dev"]
+
+[[package]]
+name = "realtimex-sdk"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/a3/f17f57dde8275abe1f495e7a65723f44de1cea8ef89db1a75c736dadc15e/realtimex_sdk-1.1.1.tar.gz", hash = "sha256:be17bd47d5dba7e6e1d309bfc6a2942d42cfc3e7ff47d36d3821b360d3aecd59", size = 68425, upload-time = "2026-01-22T07:21:28.922Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/c9/90a4d2b0c9cfea37b65978a7a10b550c63c6759dfc8f0660c7ccda55eafc/realtimex_sdk-1.1.1-py3-none-any.whl", hash = "sha256:eae9b99598929933e5ccefbea8470cc83eabbb8229ef3c2ab2bc7c9a486f203f", size = 16870, upload-time = "2026-01-22T07:21:27.767Z" },
+]
 
 [[package]]
 name = "regex"

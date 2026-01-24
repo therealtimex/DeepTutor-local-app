@@ -71,6 +71,14 @@ PyMuPDF>=1.26.0      # For PDF text extraction (fast and reliable)
 # faiss-gpu>=1.7.4   # Uncomment if you have GPU and want GPU acceleration
 
 # ============================================
+# RealTimeX Integration (Optional)
+# ============================================
+# Optional: for RealTimeX desktop integration
+# Enables LLM and embedding capabilities when running as a local app within RealTimeX
+# Install only if using DeepTutor with RealTimeX: pip install realtimex-sdk
+# realtimex-sdk>=1.1.0
+
+# ============================================
 # Development and testing tools
 # ============================================
 pytest>=7.0.0              # Testing framework
