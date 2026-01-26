@@ -134,6 +134,68 @@ class UnifiedConfigManager:
         # Ensure default configs exist and are synced with env on startup
         self._ensure_default_configs()
 
+        # Auto-activate RealTimeX if available (unless user has explicitly chosen another config)
+        self._auto_activate_rtx_if_available()
+
+    def _auto_activate_rtx_if_available(self) -> None:
+        """
+        Auto-activate RealTimeX for LLM and Embedding when SDK is detected.
+
+        Sets default provider (realtimexai) and models if no RTX selection exists yet.
+        Only activates RTX if:
+        1. SDK is available
+        2. User hasn't explicitly chosen a different config (active_id is still 'default')
+        """
+        try:
+            from src.utils.realtimex import (
+                get_rtx_active_config,
+                set_rtx_active_config,
+                should_use_realtimex_sdk,
+            )
+
+            if not should_use_realtimex_sdk():
+                return
+
+            # Auto-activate for LLM
+            llm_data = self._load_configs(ConfigType.LLM)
+            llm_active_id = llm_data.get("active_id", "default")
+
+            # Only auto-activate if still using default
+            if llm_active_id == "default":
+                rtx_llm_config = get_rtx_active_config("llm")
+                if not rtx_llm_config:
+                    # Set default RTX LLM config
+                    set_rtx_active_config("llm", "realtimexai", "gpt-4o-mini")
+                    logger.info("Auto-configured RealTimeX LLM with default model: gpt-4o-mini")
+
+                # Activate RTX for LLM
+                self.set_active_config(ConfigType.LLM, "rtx")
+                logger.info("Auto-activated RealTimeX for LLM")
+
+            # Auto-activate for Embedding
+            emb_data = self._load_configs(ConfigType.EMBEDDING)
+            emb_active_id = emb_data.get("active_id", "default")
+
+            # Only auto-activate if still using default
+            if emb_active_id == "default":
+                rtx_emb_config = get_rtx_active_config("embedding")
+                if not rtx_emb_config:
+                    # Set default RTX Embedding config
+                    set_rtx_active_config("embedding", "realtimexai", "text-embedding-3-small")
+                    logger.info(
+                        "Auto-configured RealTimeX Embedding with default model: text-embedding-3-small"
+                    )
+
+                # Activate RTX for Embedding
+                self.set_active_config(ConfigType.EMBEDDING, "rtx")
+                logger.info("Auto-activated RealTimeX for Embedding")
+
+        except ImportError:
+            # RTX utilities not available
+            pass
+        except Exception as e:
+            logger.warning(f"Failed to auto-activate RealTimeX: {e}")
+
     def _ensure_default_configs(self) -> None:
         """
         Ensure default configurations exist in storage files and sync with env.
@@ -414,10 +476,19 @@ class UnifiedConfigManager:
             if config_type not in (ConfigType.LLM, ConfigType.EMBEDDING):
                 return None
 
-            # Get user's active selection (if any)
+            # Get user's active selection (or use defaults)
             active = get_rtx_active_config(config_type.value)
-            provider = active.get("provider", "Not selected") if active else "Not selected"
-            model = active.get("model", "") if active else ""
+            
+            if active:
+                provider = active.get("provider", "realtimexai")
+                model = active.get("model", "")
+            else:
+                # Use defaults
+                provider = "realtimexai"
+                if config_type == ConfigType.LLM:
+                    model = "gpt-4o-mini"
+                else:  # Embedding
+                    model = "text-embedding-3-small"
 
             return {
                 "id": "rtx",
@@ -525,12 +596,26 @@ class UnifiedConfigManager:
 
                 if should_use_realtimex_sdk():
                     rtx_active = get_rtx_active_config(config_type.value)
+                    
                     if rtx_active:
                         return {
                             "id": "rtx",
-                            "provider": rtx_active.get("provider", ""),
+                            "provider": rtx_active.get("provider", "realtimexai"),
                             "model": rtx_active.get("model", ""),
                             "source": "realtimex",  # This tells services to use SDK
+                        }
+                    else:
+                        # Return defaults when no selection exists yet
+                        default_model = (
+                            "gpt-4o-mini"
+                            if config_type == ConfigType.LLM
+                            else "text-embedding-3-small"
+                        )
+                        return {
+                            "id": "rtx",
+                            "provider": "realtimexai",
+                            "model": default_model,
+                            "source": "realtimex",
                         }
             except ImportError:
                 pass
@@ -607,8 +692,8 @@ class UnifiedConfigManager:
         """Set a configuration as active."""
         data = self._load_configs(config_type)
 
-        # Verify config exists
-        if config_id != "default":
+        # Verify config exists (rtx is a special virtual config)
+        if config_id not in ("default", "rtx"):
             found = any(c.get("id") == config_id for c in data.get("configs", []))
             if not found:
                 return False
