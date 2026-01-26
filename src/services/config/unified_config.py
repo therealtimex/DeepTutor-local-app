@@ -478,7 +478,7 @@ class UnifiedConfigManager:
 
             # Get user's active selection (or use defaults)
             active = get_rtx_active_config(config_type.value)
-            
+
             if active:
                 provider = active.get("provider", "realtimexai")
                 model = active.get("model", "")
@@ -596,7 +596,7 @@ class UnifiedConfigManager:
 
                 if should_use_realtimex_sdk():
                     rtx_active = get_rtx_active_config(config_type.value)
-                    
+
                     if rtx_active:
                         return {
                             "id": "rtx",

@@ -240,7 +240,7 @@ def start_backend():
 def start_frontend():
     """
     Start frontend in production or development mode.
-    
+
     Production mode (default): Uses npx @realtimex/opentutor-web
     Development mode: Uses npm run dev from source (set FRONTEND_DEV_MODE=true)
     """
@@ -254,7 +254,8 @@ def start_frontend():
 
     # Get ports
     from pathlib import Path
-    from src.services.setup import get_frontend_port, get_backend_port
+
+    from src.services.setup import get_backend_port, get_frontend_port
 
     frontend_port = get_frontend_port()
     backend_port = get_backend_port(Path(project_root))
@@ -262,7 +263,7 @@ def start_frontend():
 
     # Check mode: development (source) vs production (published package)
     dev_mode = os.environ.get("FRONTEND_DEV_MODE", "").lower() in ("true", "1", "yes")
-    
+
     if dev_mode:
         print_flush("📦 Development mode: Running from source (npm run dev)")
         return _start_frontend_dev(web_dir, frontend_port, backend_port, project_root)
@@ -273,7 +274,7 @@ def start_frontend():
 
 def _start_frontend_dev(web_dir, frontend_port, backend_port, project_root):
     """Start frontend from source using npm run dev (development mode)"""
-    
+
     # Check if npm is available
     npm_path = shutil.which("npm")
     if not npm_path:
@@ -434,7 +435,7 @@ def _start_frontend_dev(web_dir, frontend_port, backend_port, project_root):
 
 def _start_frontend_npx(frontend_port, backend_port):
     """Start frontend using published package via npx (production mode)"""
-    
+
     # Check if npx is available
     npx_path = shutil.which("npx")
     if not npx_path:
@@ -486,7 +487,15 @@ def _start_frontend_npx(frontend_port, backend_port):
     # Run npx @realtimex/opentutor-web with port and api-base
     # -y flag bypasses "Need to install" confirmation prompt
     frontend_process = subprocess.Popen(
-        [npx_cmd, "-y", "@realtimex/opentutor-web", "-p", str(frontend_port), "--api-base", api_base_url],
+        [
+            npx_cmd,
+            "-y",
+            "@realtimex/opentutor-web",
+            "-p",
+            str(frontend_port),
+            "--api-base",
+            api_base_url,
+        ],
         **popen_kwargs,
     )
 
