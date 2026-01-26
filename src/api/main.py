@@ -16,6 +16,7 @@ from src.api.routers import (
     knowledge,
     notebook,
     question,
+    realtimex,
     research,
     settings,
     solve,
@@ -201,6 +202,7 @@ app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"]
 app.include_router(system.router, prefix="/api/v1/system", tags=["system"])
 app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
 app.include_router(agent_config.router, prefix="/api/v1/agent-config", tags=["agent-config"])
+app.include_router(realtimex.router, prefix="/api/v1", tags=["realtimex"])
 
 
 @app.get("/")

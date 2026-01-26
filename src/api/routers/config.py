@@ -168,6 +168,7 @@ async def get_config_status():
             "provider": active.get("provider") if active else None,
             "env_configured": env_status,
             "total_configs": len(configs),
+            "source": active.get("source") if active else None,  # "realtimex" when using RTX
         }
 
     return ConfigStatusResponse(

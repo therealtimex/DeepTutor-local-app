@@ -11,6 +11,7 @@ from .cohere import CohereEmbeddingAdapter
 from .jina import JinaEmbeddingAdapter
 from .ollama import OllamaEmbeddingAdapter
 from .openai_compatible import OpenAICompatibleEmbeddingAdapter
+from .realtimex import RealTimeXEmbeddingAdapter
 
 __all__ = [
     "BaseEmbeddingAdapter",
@@ -20,4 +21,5 @@ __all__ = [
     "JinaEmbeddingAdapter",
     "CohereEmbeddingAdapter",
     "OllamaEmbeddingAdapter",
+    "RealTimeXEmbeddingAdapter",
 ]

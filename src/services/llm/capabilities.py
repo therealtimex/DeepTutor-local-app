@@ -121,6 +121,14 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
         "supports_tools": False,
         "system_in_messages": True,
     },
+    # RealTimeX SDK (proxy to configured providers)
+    "realtimex": {
+        "supports_response_format": True,  # Proxied to underlying provider
+        "supports_streaming": True,  # SDK supports chat_stream()
+        "supports_tools": True,  # Depends on underlying provider
+        "system_in_messages": True,  # SDK uses messages array format
+        "is_proxy": True,  # SDK proxies to actual LLM providers
+    },
 }
 
 # Default capabilities for unknown providers (assume OpenAI-compatible)

@@ -1,0 +1,227 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Zap, X, Check, Loader2 } from "lucide-react";
+import { apiUrl } from "@/lib/api";
+import { ConfigType } from "../types";
+
+interface RTXProvider {
+  provider: string;
+  models: { id: string; name: string }[];
+}
+
+interface RTXModelSelectorProps {
+  configType: ConfigType;
+  currentProvider?: string;
+  currentModel?: string;
+  onSave: () => void;
+  onClose: () => void;
+  t: (key: string) => string;
+}
+
+export default function RTXModelSelector({
+  configType,
+  currentProvider,
+  currentModel,
+  onSave,
+  onClose,
+  t,
+}: RTXModelSelectorProps) {
+  const [providers, setProviders] = useState<RTXProvider[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Selected values
+  const [selectedProvider, setSelectedProvider] = useState(currentProvider || "");
+  const [selectedModel, setSelectedModel] = useState(currentModel || "");
+
+  // Load providers on mount
+  useEffect(() => {
+    loadProviders();
+  }, []);
+
+  const loadProviders = async () => {
+    try {
+      const res = await fetch(apiUrl("/api/v1/realtimex/providers"));
+      if (res.ok) {
+        const data = await res.json();
+        const providerList = configType === "llm" ? data.llm : data.embedding;
+        setProviders(providerList || []);
+
+        // Set initial selection if not already set
+        if (!selectedProvider && providerList?.length > 0) {
+          setSelectedProvider(providerList[0].provider);
+          if (providerList[0].models?.length > 0) {
+            setSelectedModel(providerList[0].models[0].id);
+          }
+        }
+      }
+    } catch (e) {
+      setError(t("Failed to load providers"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get models for selected provider
+  const currentProviderData = providers.find((p) => p.provider === selectedProvider);
+  const models = currentProviderData?.models || [];
+
+  // Update model when provider changes
+  useEffect(() => {
+    if (models.length > 0 && !models.find((m) => m.id === selectedModel)) {
+      setSelectedModel(models[0].id);
+    }
+  }, [selectedProvider, models, selectedModel]);
+
+  const handleSave = async () => {
+    if (!selectedProvider || !selectedModel) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch(apiUrl("/api/v1/realtimex/config/apply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config_type: configType,
+          provider: selectedProvider,
+          model: selectedModel,
+        }),
+      });
+
+      if (res.ok) {
+        onSave();
+      } else {
+        const data = await res.json();
+        setError(data.detail || t("Failed to save configuration"));
+      }
+    } catch (e) {
+      setError(t("Failed to save configuration"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-800/50">
+              <Zap className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">
+                {t("RealTimeX")} {configType === "llm" ? "LLM" : t("Embedding")}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {t("Select provider and model")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+            </div>
+          ) : providers.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              {t("No providers available")}
+            </div>
+          ) : (
+            <>
+              {/* Provider Select */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t("Provider")}
+                </label>
+                <select
+                  value={selectedProvider}
+                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                >
+                  {providers.map((p) => (
+                    <option key={p.provider} value={p.provider}>
+                      {p.provider}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Model Select */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t("Model")}
+                </label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={models.length === 0}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none disabled:opacity-50"
+                >
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name || m.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Info */}
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                <span className="text-sm text-emerald-700 dark:text-emerald-300">
+                  {t("No API key required - uses RealTimeX SDK")}
+                </span>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-4 border-t border-slate-200 dark:border-slate-700">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            {t("Cancel")}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !selectedProvider || !selectedModel}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t("Saving...")}
+              </>
+            ) : (
+              t("Save")
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

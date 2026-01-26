@@ -238,6 +238,12 @@ def start_backend():
 
 
 def start_frontend():
+    """
+    Start frontend in production or development mode.
+    
+    Production mode (default): Uses npx @realtimex/opentutor-web
+    Development mode: Uses npm run dev from source (set FRONTEND_DEV_MODE=true)
+    """
     print_flush("🚀 Starting Next.js Frontend...")
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     web_dir = os.path.join(project_root, "web")
@@ -246,12 +252,28 @@ def start_frontend():
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
 
-    # Get port from environment variable (default: 3782)
-    from src.services.setup import get_frontend_port
+    # Get ports
+    from pathlib import Path
+    from src.services.setup import get_frontend_port, get_backend_port
 
     frontend_port = get_frontend_port()
+    backend_port = get_backend_port(Path(project_root))
     print_flush(f"✅ Frontend port: {frontend_port}")
 
+    # Check mode: development (source) vs production (published package)
+    dev_mode = os.environ.get("FRONTEND_DEV_MODE", "").lower() in ("true", "1", "yes")
+    
+    if dev_mode:
+        print_flush("📦 Development mode: Running from source (npm run dev)")
+        return _start_frontend_dev(web_dir, frontend_port, backend_port, project_root)
+    else:
+        print_flush("📦 Production mode: Using published package (npx @realtimex/opentutor-web)")
+        return _start_frontend_npx(frontend_port, backend_port)
+
+
+def _start_frontend_dev(web_dir, frontend_port, backend_port, project_root):
+    """Start frontend from source using npm run dev (development mode)"""
+    
     # Check if npm is available
     npm_path = shutil.which("npm")
     if not npm_path:
@@ -391,6 +413,84 @@ def start_frontend():
     )
 
     # Start a thread to output frontend logs in real-time
+    import threading
+
+    def log_frontend_output():
+        try:
+            for line in iter(frontend_process.stdout.readline, ""):
+                if line:
+                    print_flush(f"[Frontend] {line.rstrip()}")
+        except Exception as e:
+            print_flush(f"[Frontend] Log output error: {e}")
+
+    log_thread = threading.Thread(target=log_frontend_output, daemon=True)
+    log_thread.start()
+
+    print_flush(f"✅ Frontend process started (PID: {frontend_process.pid})")
+    if os.name != "nt":
+        print_flush(f"   Process group ID (PGID): {os.getpgid(frontend_process.pid)}")
+    return frontend_process
+
+
+def _start_frontend_npx(frontend_port, backend_port):
+    """Start frontend using published package via npx (production mode)"""
+    
+    # Check if npx is available
+    npx_path = shutil.which("npx")
+    if not npx_path:
+        print_flush("❌ Error: 'npx' command not found!")
+        print_flush("   Please install Node.js and npm first.")
+        print_flush("   You can install it from: https://nodejs.org/")
+        print_flush("   Or set FRONTEND_DEV_MODE=true to run from source")
+        raise RuntimeError("npx is not installed or not in PATH")
+
+    print_flush(f"✅ Found npx at: {npx_path}")
+
+    # Determine API base URL
+    api_base_url = (
+        os.environ.get("NEXT_PUBLIC_API_BASE_EXTERNAL")
+        or os.environ.get("NEXT_PUBLIC_API_BASE")
+        or os.environ.get("API_BASE_URL")
+        or f"http://localhost:{backend_port}"
+    )
+
+    print_flush(f"📌 Using API URL: {api_base_url}")
+
+    # Set environment variables
+    env = os.environ.copy()
+    env["API_BASE_URL"] = api_base_url
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+    if os.name == "nt":
+        env["PYTHONLEGACYWINDOWSSTDIO"] = "0"
+
+    npx_cmd = shutil.which("npx") or "npx"
+
+    # Process group configuration
+    popen_kwargs = {
+        "shell": False,
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.STDOUT,
+        "text": True,
+        "bufsize": 1,
+        "env": env,
+        "encoding": "utf-8",
+        "errors": "replace",
+    }
+
+    if os.name != "nt":
+        popen_kwargs["start_new_session"] = True
+    else:
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+    # Run npx @realtimex/opentutor-web with port and api-base
+    # -y flag bypasses "Need to install" confirmation prompt
+    frontend_process = subprocess.Popen(
+        [npx_cmd, "-y", "@realtimex/opentutor-web", "-p", str(frontend_port), "--api-base", api_base_url],
+        **popen_kwargs,
+    )
+
+    # Log output thread
     import threading
 
     def log_frontend_output():

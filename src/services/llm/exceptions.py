@@ -138,6 +138,33 @@ class ProviderContextWindowError(LLMAPIError):
     pass
 
 
+# RealTimeX-specific exceptions (for SDK integration)
+class RealTimeXError(LLMAPIError):
+    """
+    Base exception for RealTimeX SDK errors.
+
+    Raised when interacting with RealTimeX SDK proxy fails.
+    """
+
+    def __init__(self, message: str, error_code: Optional[str] = None):
+        super().__init__(message, error_code)
+
+
+class RealTimeXPermissionError(LLMAuthenticationError):
+    """
+    Exception raised when RealTimeX SDK permission is required or denied.
+
+    Args:
+        permission: The permission that was required (e.g., 'llm.chat', 'llm.embed')
+        message: Optional custom error message
+    """
+
+    def __init__(self, permission: str, message: Optional[str] = None):
+        self.permission = permission
+        msg = message or f"RealTimeX permission required: {permission}"
+        super().__init__(msg)
+
+
 __all__ = [
     "LLMError",
     "LLMConfigError",
@@ -150,4 +177,6 @@ __all__ = [
     "LLMParseError",
     "ProviderQuotaExceededError",
     "ProviderContextWindowError",
+    "RealTimeXError",
+    "RealTimeXPermissionError",
 ]

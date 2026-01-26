@@ -43,6 +43,8 @@ dependencies = [
     "numpy>=1.24.0,<2.0.0",
     # Academic and research tools
     "arxiv>=2.0.0",
+    # RealTimeX SDK
+    "realtimex-sdk>=1.1.2",
 ]
 
 # Optional dependencies for different providers and features
@@ -79,7 +81,12 @@ dev = [
 ]
 
 [project.scripts]
-deeptutor = "src.api.run_server:main"
+# Main entry point for full-stack startup (uvx realtimex-deeptutor)
+realtimex-deeptutor = "src.cli.start:main"
+deeptutor = "src.cli.start:main"  # Shorter alias
+
+# Backend-only mode (existing, for advanced users)
+deeptutor-backend = "src.api.run_server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
