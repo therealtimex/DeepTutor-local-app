@@ -129,3 +129,65 @@ def should_use_realtimex_sdk(force_check: bool = False) -> bool:
         logger.error(f"RealTimeX detection error: {e}")
         _detection_cache = False
         return False
+
+
+# Cache for providers list
+_providers_cache: Optional[dict] = None
+_providers_cache_time: float = 0
+PROVIDERS_CACHE_TTL = 300  # 5 minutes
+
+
+async def get_cached_providers() -> dict:
+    """
+    Get available providers from RealTimeX SDK with backend caching.
+
+    Returns:
+        Dict with 'llm' and 'embedding' provider lists.
+        Returns empty lists if SDK not enabled.
+    """
+    global _providers_cache, _providers_cache_time
+
+    import time
+
+    if not should_use_realtimex_sdk():
+        return {"rtx_enabled": False, "llm": [], "embedding": []}
+
+    # Check cache validity
+    if _providers_cache and (time.time() - _providers_cache_time) < PROVIDERS_CACHE_TTL:
+        return _providers_cache
+
+    # Fetch fresh data from SDK
+    try:
+        sdk = get_realtimex_sdk()
+
+        # Fetch both in parallel (conceptually, though await is sequential here)
+        # In a real async environment we might use asyncio.gather, but sequential is safe
+        llm_result = await sdk.llm.chat_providers()
+        embed_result = await sdk.llm.embed_providers()
+
+        def serialize_provider(p):
+            return {
+                "provider": p.provider,
+                "models": [{"id": m.id, "name": m.name} for m in p.models],
+            }
+
+        _providers_cache = {
+            "rtx_enabled": True,
+            "llm": [serialize_provider(p) for p in llm_result.providers],
+            "embedding": [serialize_provider(p) for p in embed_result.providers],
+        }
+        _providers_cache_time = time.time()
+
+        return _providers_cache
+
+    except Exception as e:
+        logger.warning(f"Failed to fetch RTX providers: {e}")
+        # Return empty but enabled structure on error to allow retry
+        return {"rtx_enabled": True, "llm": [], "embedding": [], "error": str(e)}
+
+
+def invalidate_providers_cache():
+    """Invalidate the providers cache (e.g. on reconnection)."""
+    global _providers_cache, _providers_cache_time
+    _providers_cache = None
+    _providers_cache_time = 0
