@@ -39,6 +39,7 @@ Examples:
 Environment Variables:
   FRONTEND_PORT       Frontend port (default: 3782)
   BACKEND_PORT        Backend port (default: 8001)
+  AUTO_KILL_PORTS     Auto-kill processes using required ports (default: false)
   RTX_APP_ID          RealTimeX App ID (auto-detected)
   API_BASE_URL        Backend API URL (auto-configured)
   LOG_LEVEL           Logging level (DEBUG, INFO, WARNING, ERROR)

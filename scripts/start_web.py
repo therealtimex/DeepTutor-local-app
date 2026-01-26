@@ -69,6 +69,194 @@ else:
         return False
 
 
+def check_port_in_use(port: int) -> tuple[bool, int | None]:
+    """
+    Check if a port is in use and return the PID of the process using it.
+
+    Uses connect test to check if something is actually LISTENING on the port,
+    rather than bind test which fails for TIME_WAIT state.
+
+    Args:
+        port: Port number to check
+
+    Returns:
+        Tuple of (is_in_use, pid_or_none)
+    """
+    import socket
+
+    # Use connect test to check if something is actually listening
+    # This avoids false positives from TIME_WAIT state
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1)
+    try:
+        result = sock.connect_ex(("localhost", port))
+        if result != 0:
+            # Connection refused = nothing listening = port is free
+            return False, None
+    except (OSError, socket.timeout):
+        # Connection failed = port is free
+        return False, None
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+    # Port is in use (connection succeeded), try to find the PID
+    pid = None
+    try:
+        if os.name == "nt":
+            # Windows: use netstat
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    if parts:
+                        try:
+                            pid = int(parts[-1])
+                            break
+                        except ValueError:
+                            pass
+        else:
+            # Unix: use lsof
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                # May return multiple PIDs, take the first one
+                try:
+                    pid = int(result.stdout.strip().split()[0])
+                except (ValueError, IndexError):
+                    pass
+    except Exception:
+        pass
+
+    return True, pid
+
+
+def kill_process_on_port(port: int, force: bool = False) -> bool:
+    """
+    Kill the process using a specific port.
+
+    Args:
+        port: Port number
+        force: If True, use SIGKILL instead of SIGTERM
+
+    Returns:
+        True if process was killed successfully
+    """
+    in_use, pid = check_port_in_use(port)
+    if not in_use:
+        return True  # Port is free
+
+    if pid is None:
+        print_flush(f"⚠️  Port {port} is in use but couldn't identify the process")
+        return False
+
+    print_flush(f"   Stopping process {pid} on port {port}...")
+
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/F", "/PID", str(pid)], check=True, capture_output=True)
+        else:
+            sig = signal.SIGKILL if force else signal.SIGTERM
+            os.kill(pid, sig)
+            # Wait a moment for process to terminate
+            time.sleep(0.5)
+            # Check if still running, force kill if needed
+            if not force:
+                try:
+                    os.kill(pid, 0)  # Check if process exists
+                    os.kill(pid, signal.SIGKILL)
+                    time.sleep(0.3)
+                except ProcessLookupError:
+                    pass  # Process already terminated
+
+        # Verify port is now free
+        time.sleep(0.3)
+        in_use, _ = check_port_in_use(port)
+        if not in_use:
+            print_flush(f"✅ Port {port} is now free")
+            return True
+        else:
+            print_flush(f"⚠️  Port {port} still in use after killing process")
+            return False
+
+    except Exception as e:
+        print_flush(f"❌ Failed to kill process {pid}: {e}")
+        return False
+
+
+def ensure_ports_available(backend_port: int, frontend_port: int, auto_kill: bool = False) -> bool:
+    """
+    Ensure required ports are available, optionally killing existing processes.
+
+    Args:
+        backend_port: Backend port number
+        frontend_port: Frontend port number
+        auto_kill: If True, automatically kill processes using the ports
+
+    Returns:
+        True if all ports are available
+    """
+    ports_to_check = [
+        (backend_port, "Backend"),
+        (frontend_port, "Frontend"),
+    ]
+
+    conflicts = []
+    for port, name in ports_to_check:
+        in_use, pid = check_port_in_use(port)
+        if in_use:
+            conflicts.append((port, name, pid))
+
+    if not conflicts:
+        return True
+
+    print_flush("")
+    print_flush("⚠️  Port conflict detected:")
+    for port, name, pid in conflicts:
+        pid_info = f" (PID: {pid})" if pid else ""
+        print_flush(f"   - {name} port {port} is already in use{pid_info}")
+
+    if auto_kill:
+        print_flush("")
+        print_flush("🔄 AUTO_KILL_PORTS is enabled, cleaning up...")
+        all_freed = True
+        for port, name, _ in conflicts:
+            if not kill_process_on_port(port):
+                all_freed = False
+        return all_freed
+    else:
+        print_flush("")
+        print_flush("💡 To resolve this, you can either:")
+        print_flush("   1. Set AUTO_KILL_PORTS=true to automatically clean up")
+        print_flush("   2. Manually kill the processes:")
+        for port, name, pid in conflicts:
+            if pid:
+                if os.name == "nt":
+                    print_flush(f"      taskkill /F /PID {pid}")
+                else:
+                    print_flush(f"      kill -9 {pid}")
+            else:
+                if os.name == "nt":
+                    print_flush(f"      netstat -ano | findstr :{port}")
+                else:
+                    print_flush(f"      lsof -ti :{port} | xargs kill -9")
+        print_flush("   3. Use different ports via environment variables:")
+        print_flush("      BACKEND_PORT=8002 FRONTEND_PORT=3783 uvx realtimex-deeptutor")
+        print_flush("")
+        return False
+
+
 def terminate_process_tree(process, name="Process", timeout=5):
     """
     Terminate a process and all its children (process group).
@@ -539,6 +727,23 @@ if __name__ == "__main__":
         init_user_directories(Path(project_root))
     except Exception as e:
         print_flush(f"⚠️ Warning: Failed to initialize user directories: {e}")
+        print_flush("   Continuing anyway...")
+
+    # Check for port conflicts before starting services
+    try:
+        from pathlib import Path
+
+        from src.services.setup import get_ports
+
+        backend_port, frontend_port = get_ports(
+            Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
+
+        auto_kill = os.environ.get("AUTO_KILL_PORTS", "").lower() in ("true", "1", "yes")
+        if not ensure_ports_available(backend_port, frontend_port, auto_kill=auto_kill):
+            sys.exit(1)
+    except Exception as e:
+        print_flush(f"⚠️ Warning: Failed to check ports: {e}")
         print_flush("   Continuing anyway...")
 
     backend = None
