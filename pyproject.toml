@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "realtimex-deeptutor"
-version = "0.5.0.post3"
+version = "0.5.0.post4"
 description = "RealTimeX DeepTutor - Intelligent learning companion with multi-agent collaboration and LightRAG"
 requires-python = ">=3.10"
 readme = "README.md"
