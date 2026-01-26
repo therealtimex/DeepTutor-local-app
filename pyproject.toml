@@ -90,7 +90,7 @@ deeptutor-backend = "src.api.run_server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "realtimex_deeptutor*"]
+include = ["src*", "realtimex_deeptutor*", "scripts*"]
 
 [tool.setuptools.package-data]
 # Include non-Python files in the package distribution
