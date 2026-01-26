@@ -68,6 +68,7 @@ class LLMConfig:
     api_version: Optional[str] = None
     max_tokens: int = 4096
     temperature: float = 0.7
+    source: Optional[str] = None  # "realtimex" when using RTX SDK
 
 
 def _strip_value(value: Optional[str]) -> Optional[str]:
@@ -126,10 +127,11 @@ def get_llm_config() -> LLMConfig:
         if config:
             return LLMConfig(
                 binding=config.get("provider", "openai"),
-                model=config["model"],
+                model=config.get("model", ""),
                 api_key=config.get("api_key", ""),
                 base_url=config.get("base_url"),
                 api_version=config.get("api_version"),
+                source=config.get("source"),  # "realtimex" when using RTX
             )
     except ImportError:
         # Unified config service not yet available, fall back to env
@@ -159,10 +161,11 @@ async def get_llm_config_async() -> LLMConfig:
         if config:
             return LLMConfig(
                 binding=config.get("provider", "openai"),
-                model=config["model"],
+                model=config.get("model", ""),
                 api_key=config.get("api_key", ""),
                 base_url=config.get("base_url"),
                 api_version=config.get("api_version"),
+                source=config.get("source"),  # "realtimex" when using RTX
             )
     except ImportError:
         pass

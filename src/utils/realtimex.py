@@ -191,3 +191,94 @@ def invalidate_providers_cache():
     global _providers_cache, _providers_cache_time
     _providers_cache = None
     _providers_cache_time = 0
+
+
+# =============================================================================
+# RTX Active Config Storage
+# =============================================================================
+# Stores the user's selected provider/model for LLM and Embedding when using RTX.
+# This is persisted to disk so selections survive restarts.
+
+import json
+from pathlib import Path
+
+# Storage path for RTX active config
+_RTX_CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "user" / "settings"
+_RTX_CONFIG_FILE = _RTX_CONFIG_DIR / "rtx_active.json"
+
+
+def _load_rtx_active_config() -> dict:
+    """Load RTX active config from disk."""
+    try:
+        if _RTX_CONFIG_FILE.exists():
+            with open(_RTX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Failed to load RTX active config: {e}")
+    return {}
+
+
+def _save_rtx_active_config(config: dict) -> bool:
+    """Save RTX active config to disk."""
+    try:
+        _RTX_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(_RTX_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save RTX active config: {e}")
+        return False
+
+
+def get_rtx_active_config(config_type: str) -> Optional[dict]:
+    """
+    Get the active RTX config for a specific config type.
+
+    Args:
+        config_type: "llm" or "embedding"
+
+    Returns:
+        Dict with provider, model, or None if not configured
+    """
+    if not should_use_realtimex_sdk():
+        return None
+
+    data = _load_rtx_active_config()
+    return data.get(config_type)
+
+
+def set_rtx_active_config(config_type: str, provider: str, model: str) -> bool:
+    """
+    Set the active RTX config for a specific config type.
+
+    Args:
+        config_type: "llm" or "embedding"
+        provider: Provider name (e.g., "openai")
+        model: Model ID (e.g., "gpt-4o")
+
+    Returns:
+        True if saved successfully
+    """
+    data = _load_rtx_active_config()
+    data[config_type] = {
+        "provider": provider,
+        "model": model,
+    }
+    return _save_rtx_active_config(data)
+
+
+def clear_rtx_active_config(config_type: str) -> bool:
+    """
+    Clear the active RTX config for a specific config type.
+
+    Args:
+        config_type: "llm" or "embedding"
+
+    Returns:
+        True if cleared successfully
+    """
+    data = _load_rtx_active_config()
+    if config_type in data:
+        del data[config_type]
+        return _save_rtx_active_config(data)
+    return True

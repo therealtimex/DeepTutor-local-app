@@ -393,6 +393,49 @@ class UnifiedConfigManager:
 
         return resolved
 
+    def _build_rtx_virtual_config(self, config_type: ConfigType) -> Optional[Dict[str, Any]]:
+        """
+        Build a virtual RTX config entry for display in the config list.
+
+        This config represents the RealTimeX SDK integration and is shown
+        when the SDK is connected. It reads the user's active selection
+        from rtx_active.json.
+
+        Returns:
+            Dict with RTX config for display, or None if RTX not available
+        """
+        try:
+            from src.utils.realtimex import get_rtx_active_config, should_use_realtimex_sdk
+
+            if not should_use_realtimex_sdk():
+                return None
+
+            # Only LLM and Embedding are supported via RTX
+            if config_type not in (ConfigType.LLM, ConfigType.EMBEDDING):
+                return None
+
+            # Get user's active selection (if any)
+            active = get_rtx_active_config(config_type.value)
+            provider = active.get("provider", "Not selected") if active else "Not selected"
+            model = active.get("model", "") if active else ""
+
+            return {
+                "id": "rtx",
+                "name": "RealTimeX",
+                "is_default": False,
+                "provider": provider,
+                "model": model,
+                "source": "realtimex",  # Flag for services to route through SDK
+                "api_key": "—",  # No API key needed
+                "base_url": "—",  # Uses SDK proxy
+            }
+
+        except ImportError:
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to build RTX virtual config: {e}")
+            return None
+
     def get_provider_options(self, config_type: ConfigType) -> List[str]:
         """Get available provider options for a config type."""
         return PROVIDER_OPTIONS.get(config_type, [])
@@ -405,6 +448,9 @@ class UnifiedConfigManager:
         For display purposes, the default config shows:
         - Current model/provider from env (dynamically refreshed)
         - base_url/api_key as "***" (hidden for security)
+
+        When RealTimeX SDK is connected, a virtual "RealTimeX" config
+        is prepended to the list for LLM and Embedding types.
         """
         data = self._load_configs(config_type)
         configs = data.get("configs", [])
@@ -416,6 +462,12 @@ class UnifiedConfigManager:
         # Process all configs for display
         result = []
         has_default = False
+
+        # Prepend RTX virtual config if available
+        rtx_config = self._build_rtx_virtual_config(config_type)
+        if rtx_config:
+            rtx_config["is_active"] = active_id == "rtx"
+            result.append(rtx_config)
 
         for cfg in configs:
             if cfg.get("id") == "default":
@@ -438,7 +490,9 @@ class UnifiedConfigManager:
         # If no default config found in file, prepend the display default
         if not has_default:
             display_default["is_active"] = active_id == "default"
-            result.insert(0, display_default)
+            # Insert after RTX config if present, otherwise at the beginning
+            insert_pos = 1 if rtx_config else 0
+            result.insert(insert_pos, display_default)
 
         return result
 
@@ -457,9 +511,31 @@ class UnifiedConfigManager:
         """
         Get the currently active configuration with all values resolved.
         This is used internally when services need actual configuration values.
+
+        When active_id is 'rtx', returns a config with source='realtimex'
+        to signal services to route through the RealTimeX SDK.
         """
         data = self._load_configs(config_type)
         active_id = data.get("active_id", "default")
+
+        # Handle RTX virtual config
+        if active_id == "rtx":
+            try:
+                from src.utils.realtimex import get_rtx_active_config, should_use_realtimex_sdk
+
+                if should_use_realtimex_sdk():
+                    rtx_active = get_rtx_active_config(config_type.value)
+                    if rtx_active:
+                        return {
+                            "id": "rtx",
+                            "provider": rtx_active.get("provider", ""),
+                            "model": rtx_active.get("model", ""),
+                            "source": "realtimex",  # This tells services to use SDK
+                        }
+            except ImportError:
+                pass
+            # Fallback to default if RTX not available
+            return self._get_default_config_resolved(config_type)
 
         if active_id == "default":
             return self._get_default_config_resolved(config_type)

@@ -36,6 +36,7 @@ class EmbeddingConfig:
     max_tokens: int = 8192
     request_timeout: int = 30
     input_type: Optional[str] = None  # For task-aware embeddings (Cohere, Jina)
+    source: Optional[str] = None  # "realtimex" when using RTX SDK
 
     # Optional provider-specific settings
     encoding_format: str = "float"
@@ -93,6 +94,7 @@ def get_embedding_config() -> EmbeddingConfig:
                 base_url=config.get("base_url"),
                 api_version=config.get("api_version"),
                 dim=config.get("dimensions", 3072),
+                source=config.get("source"),  # "realtimex" when using RTX
             )
     except ImportError:
         # Unified config service not yet available, fall back to env
