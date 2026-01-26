@@ -198,6 +198,12 @@ export default function OverviewTab({
                       <span className="text-slate-700 dark:text-slate-300">
                         {s.provider}
                       </span>
+                      {s.source === "realtimex" && (
+                        <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          {t("RealTimeX")}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

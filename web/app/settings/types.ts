@@ -12,6 +12,7 @@ export interface ConfigItem {
   api_version?: string;
   is_default?: boolean;
   is_active?: boolean;
+  source?: string; // "realtimex" when using RTX SDK
 }
 
 export interface ConfigStatus {
@@ -22,6 +23,7 @@ export interface ConfigStatus {
   provider: string | null;
   env_configured: Record<string, boolean>;
   total_configs: number;
+  source?: string; // "realtimex" when using RTX SDK
 }
 
 export interface FullStatus {

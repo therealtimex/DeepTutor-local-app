@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Loader2, Pencil } from "lucide-react";
+import { Plus, Trash2, Loader2, Pencil, Zap } from "lucide-react";
 import { apiUrl } from "@/lib/api";
 import { ConfigItem, ConfigType } from "../types";
 import ConfigForm from "./ConfigForm";
+import RTXModelSelector from "./RTXModelSelector";
 
 interface ConfigTabProps {
   configType: ConfigType;
@@ -31,6 +32,8 @@ export default function ConfigTab({
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingConfig, setEditingConfig] = useState<ConfigItem | null>(null);
+  const [showRTXSelector, setShowRTXSelector] = useState(false);
+  const [rtxConfig, setRtxConfig] = useState<ConfigItem | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -181,32 +184,47 @@ export default function ConfigTab({
 
       {/* Configuration List */}
       <div className="space-y-3">
-        {configs.map((config) => (
+        {configs.map((config) => {
+          const isRTX = config.source === "realtimex" || config.id === "rtx";
+
+          return (
           <div
             key={config.id}
             className={`p-4 rounded-xl border transition-all ${
               config.is_active
-                ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20"
+                ? isRTX
+                  ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20"
+                  : "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20"
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
             }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {config.is_active && (
-                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <div className={`w-2 h-2 rounded-full ${isRTX ? "bg-emerald-500" : "bg-blue-500"}`} />
                 )}
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-slate-900 dark:text-slate-100">
                       {config.name}
                     </span>
+                    {isRTX && (
+                      <span className="px-2 py-0.5 text-xs bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 rounded flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        {t("RealTimeX")}
+                      </span>
+                    )}
                     {config.is_default && (
                       <span className="px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded">
                         {t("Default")}
                       </span>
                     )}
                     {config.is_active && (
-                      <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded">
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        isRTX
+                          ? "bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300"
+                          : "bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300"
+                      }`}>
                         {t("Active")}
                       </span>
                     )}
@@ -237,12 +255,16 @@ export default function ConfigTab({
                 {!config.is_active && (
                   <button
                     onClick={() => setActive(config.id)}
-                    className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      isRTX
+                        ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                        : "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    }`}
                   >
                     {t("Set Active")}
                   </button>
                 )}
-                {!isSearchConfig && (
+                {!isSearchConfig && !isRTX && (
                   <button
                     onClick={() => testConnection(config)}
                     disabled={testing === config.id}
@@ -255,7 +277,21 @@ export default function ConfigTab({
                     )}
                   </button>
                 )}
-                {!config.is_default && (
+                {/* Edit button for RTX configs opens RTXModelSelector */}
+                {isRTX && (
+                  <button
+                    onClick={() => {
+                      setRtxConfig(config);
+                      setShowRTXSelector(true);
+                    }}
+                    className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+                    title={t("Edit")}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+                {/* Edit button for regular configs */}
+                {!config.is_default && !isRTX && (
                   <button
                     onClick={() => {
                       setEditingConfig(config);
@@ -267,7 +303,7 @@ export default function ConfigTab({
                     <Pencil className="w-4 h-4" />
                   </button>
                 )}
-                {!config.is_default && (
+                {!config.is_default && !isRTX && (
                   <button
                     onClick={() => deleteConfig(config.id)}
                     className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
@@ -279,7 +315,8 @@ export default function ConfigTab({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {configs.length === 0 && (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -287,6 +324,26 @@ export default function ConfigTab({
           </div>
         )}
       </div>
+
+      {/* RTX Model Selector Modal */}
+      {showRTXSelector && (
+        <RTXModelSelector
+          configType={configType}
+          currentProvider={rtxConfig?.provider}
+          currentModel={rtxConfig?.model}
+          onSave={() => {
+            setShowRTXSelector(false);
+            setRtxConfig(null);
+            loadConfigs();
+            onUpdate();
+          }}
+          onClose={() => {
+            setShowRTXSelector(false);
+            setRtxConfig(null);
+          }}
+          t={t}
+        />
+      )}
     </div>
   );
 }
