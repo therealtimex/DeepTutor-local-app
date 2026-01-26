@@ -94,21 +94,21 @@ class RTXConfigApplyRequest(BaseModel):
 @router.post("/realtimex/config/apply")
 async def apply_rtx_config(request: RTXConfigApplyRequest):
     """
-    Apply RTX provider selection.
-    Creates/updates a special 'realtimex' config entry that signals
-    the LLM service to route through SDK instead of direct API calls.
+    Apply RTX provider/model selection.
+
+    Saves the selection to rtx_active.json and sets the active config
+    to 'rtx' in the unified config manager.
     """
     from fastapi import HTTPException
 
     from src.services.config.unified_config import ConfigType, get_config_manager
-    from src.utils.realtimex import should_use_realtimex_sdk
+    from src.utils.realtimex import set_rtx_active_config, should_use_realtimex_sdk
 
     if not should_use_realtimex_sdk():
         raise HTTPException(400, "RealTimeX SDK not available")
 
     try:
         # Validate config type
-        config_type_enum = None
         if request.config_type == "llm":
             config_type_enum = ConfigType.LLM
         elif request.config_type == "embedding":
@@ -116,22 +116,22 @@ async def apply_rtx_config(request: RTXConfigApplyRequest):
         else:
             raise HTTPException(400, f"Invalid config type: {request.config_type}")
 
-        # Store as special RTX config - the LLM service knows to use SDK
+        # Save RTX selection to rtx_active.json
+        if not set_rtx_active_config(request.config_type, request.provider, request.model):
+            raise HTTPException(500, "Failed to save RTX configuration")
+
+        # Set 'rtx' as the active config in unified config manager
         manager = get_config_manager()
-        rtx_config = {
-            "id": f"rtx_{request.config_type}",
-            "name": f"RealTimeX ({request.provider})",
+        manager.set_active_config(config_type_enum, "rtx")
+
+        return {
+            "success": True,
+            "config_type": request.config_type,
             "provider": request.provider,
             "model": request.model,
-            "source": "realtimex",  # Flag for LLM service
-            "is_active": True,
         }
 
-        # Save as active config
-        manager.save_config(config_type_enum, rtx_config)
-        manager.set_active_config(config_type_enum, rtx_config["id"])
-
-        return {"success": True, "active": rtx_config}
-
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Failed to apply configuration: {str(e)}")

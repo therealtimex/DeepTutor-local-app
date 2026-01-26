@@ -153,6 +153,7 @@ async def complete(
         str: The LLM response
     """
     # Get config if parameters not provided
+    config = None
     if not model or not base_url:
         config = get_llm_config()
         model = model or config.model
@@ -163,8 +164,8 @@ async def complete(
 
     # ROUTING LOGIC (Priority order):
 
-    # 1. RealTimeX SDK (highest priority)
-    if should_use_realtimex_sdk():
+    # 1. RealTimeX SDK (when active config has source="realtimex")
+    if config and getattr(config, "source", None) == "realtimex" and should_use_realtimex_sdk():
         from . import realtimex_provider
 
         return await realtimex_provider.complete(
@@ -293,6 +294,7 @@ async def stream(
         str: Response chunks
     """
     # Get config if parameters not provided
+    config = None
     if not model or not base_url:
         config = get_llm_config()
         model = model or config.model
@@ -303,8 +305,8 @@ async def stream(
 
     # ROUTING LOGIC (Priority order):
 
-    # 1. RealTimeX SDK (highest priority)
-    if should_use_realtimex_sdk():
+    # 1. RealTimeX SDK (when active config has source="realtimex")
+    if config and getattr(config, "source", None) == "realtimex" and should_use_realtimex_sdk():
         from . import realtimex_provider
 
         async for chunk in realtimex_provider.stream(

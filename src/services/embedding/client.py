@@ -35,26 +35,31 @@ class EmbeddingClient:
         self.logger = get_logger("EmbeddingClient")
         self.manager: EmbeddingProviderManager = get_embedding_provider_manager()
 
-        # ROUTING LOGIC: Check for RealTimeX environment first
-        from src.utils.realtimex import should_use_realtimex_sdk
+        # ROUTING LOGIC: Use RealTimeX adapter when source is "realtimex"
+        if getattr(self.config, "source", None) == "realtimex":
+            try:
+                from src.utils.realtimex import should_use_realtimex_sdk
 
-        if should_use_realtimex_sdk():
-            from .adapters.realtimex import RealTimeXEmbeddingAdapter
+                if should_use_realtimex_sdk():
+                    from .adapters.realtimex import RealTimeXEmbeddingAdapter
 
-            adapter = RealTimeXEmbeddingAdapter(
-                {
-                    "model": self.config.model,
-                    "dimensions": self.config.dim,
-                }
-            )
+                    adapter = RealTimeXEmbeddingAdapter(
+                        {
+                            "model": self.config.model,
+                            "dimensions": self.config.dim,
+                        }
+                    )
 
-            self.manager.set_adapter(adapter)
+                    self.manager.set_adapter(adapter)
 
-            self.logger.info(
-                f"Using RealTimeX embedding adapter (model: {self.config.model}, "
-                f"dimensions: {self.config.dim})"
-            )
-            return
+                    self.logger.info(
+                        f"Using RealTimeX embedding adapter (model: {self.config.model}, "
+                        f"dimensions: {self.config.dim})"
+                    )
+                    return
+            except ImportError:
+                self.logger.warning("RealTimeX SDK not available, falling back to env config")
+                pass
 
         # Initialize adapter based on binding configuration
         try:
