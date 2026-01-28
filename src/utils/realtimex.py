@@ -261,23 +261,30 @@ def get_rtx_active_config(config_type: str) -> Optional[dict]:
     return data.get(config_type)
 
 
-def set_rtx_active_config(config_type: str, provider: str, model: str) -> bool:
+def set_rtx_active_config(
+    config_type: str, provider: str, model: str, voice: Optional[str] = None
+) -> bool:
     """
     Set the active RTX config for a specific config type.
 
     Args:
-        config_type: "llm" or "embedding"
+        config_type: "llm", "embedding" or "tts"
         provider: Provider name (e.g., "openai")
         model: Model ID (e.g., "gpt-4o")
+        voice: Optional voice ID (for TTS)
 
     Returns:
         True if saved successfully
     """
     data = _load_rtx_active_config()
-    data[config_type] = {
+    config = {
         "provider": provider,
         "model": model,
     }
+    if voice:
+        config["voice"] = voice
+
+    data[config_type] = config
     return _save_rtx_active_config(data)
 
 

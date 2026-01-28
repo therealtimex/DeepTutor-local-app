@@ -86,9 +86,10 @@ from pydantic import BaseModel
 
 
 class RTXConfigApplyRequest(BaseModel):
-    config_type: str  # "llm" or "embedding"
+    config_type: str  # "llm", "embedding" or "tts"
     provider: str
     model: str
+    voice: Optional[str] = None
 
 
 @router.post("/realtimex/config/apply")
@@ -119,7 +120,9 @@ async def apply_rtx_config(request: RTXConfigApplyRequest):
             raise HTTPException(400, f"Invalid config type: {request.config_type}")
 
         # Save RTX selection to rtx_active.json
-        if not set_rtx_active_config(request.config_type, request.provider, request.model):
+        if not set_rtx_active_config(
+            request.config_type, request.provider, request.model, request.voice
+        ):
             raise HTTPException(500, "Failed to save RTX configuration")
 
         # Set 'rtx' as the active config in unified config manager
@@ -131,6 +134,7 @@ async def apply_rtx_config(request: RTXConfigApplyRequest):
             "config_type": request.config_type,
             "provider": request.provider,
             "model": request.model,
+            "voice": request.voice,
         }
 
     except HTTPException:

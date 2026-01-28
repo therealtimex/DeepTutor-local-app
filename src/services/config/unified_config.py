@@ -620,6 +620,7 @@ class UnifiedConfigManager:
                             "id": "rtx",
                             "provider": rtx_active.get("provider", "realtimexai"),
                             "model": rtx_active.get("model", ""),
+                            "voice": rtx_active.get("voice"),  # Include voice for TTS
                             "source": "realtimex",  # This tells services to use SDK
                         }
                     else:
