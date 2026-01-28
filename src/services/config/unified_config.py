@@ -190,6 +190,22 @@ class UnifiedConfigManager:
                 self.set_active_config(ConfigType.EMBEDDING, "rtx")
                 logger.info("Auto-activated RealTimeX for Embedding")
 
+            # Auto-activate for TTS
+            tts_data = self._load_configs(ConfigType.TTS)
+            tts_active_id = tts_data.get("active_id", "default")
+
+            # Only auto-activate if still using default
+            if tts_active_id == "default":
+                rtx_tts_config = get_rtx_active_config("tts")
+                if not rtx_tts_config:
+                    # Set default RTX TTS config
+                    set_rtx_active_config("tts", "realtimexai", "tts-1")
+                    logger.info("Auto-configured RealTimeX TTS with default model: tts-1")
+
+                # Activate RTX for TTS
+                self.set_active_config(ConfigType.TTS, "rtx")
+                logger.info("Auto-activated RealTimeX for TTS")
+
         except ImportError:
             # RTX utilities not available
             pass
@@ -472,8 +488,8 @@ class UnifiedConfigManager:
             if not should_use_realtimex_sdk():
                 return None
 
-            # Only LLM and Embedding are supported via RTX
-            if config_type not in (ConfigType.LLM, ConfigType.EMBEDDING):
+            # Only LLM, Embedding, and TTS are supported via RTX
+            if config_type not in (ConfigType.LLM, ConfigType.EMBEDDING, ConfigType.TTS):
                 return None
 
             # Get user's active selection (or use defaults)
@@ -487,8 +503,10 @@ class UnifiedConfigManager:
                 provider = "realtimexai"
                 if config_type == ConfigType.LLM:
                     model = "gpt-4o-mini"
-                else:  # Embedding
+                elif config_type == ConfigType.EMBEDDING:
                     model = "text-embedding-3-small"
+                elif config_type == ConfigType.TTS:
+                    model = "tts-1"
 
             return {
                 "id": "rtx",
@@ -606,11 +624,15 @@ class UnifiedConfigManager:
                         }
                     else:
                         # Return defaults when no selection exists yet
-                        default_model = (
-                            "gpt-4o-mini"
-                            if config_type == ConfigType.LLM
-                            else "text-embedding-3-small"
-                        )
+                        if config_type == ConfigType.LLM:
+                            default_model = "gpt-4o-mini"
+                        elif config_type == ConfigType.EMBEDDING:
+                            default_model = "text-embedding-3-small"
+                        elif config_type == ConfigType.TTS:
+                            default_model = "tts-1"
+                        else:
+                            default_model = ""
+
                         return {
                             "id": "rtx",
                             "provider": "realtimexai",

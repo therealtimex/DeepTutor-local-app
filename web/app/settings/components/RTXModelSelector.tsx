@@ -1,3 +1,4 @@
+/* eslint-disable i18n/no-literal-ui-text */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,12 +9,14 @@ import { ConfigType } from "../types";
 interface RTXProvider {
   provider: string;
   models: { id: string; name: string }[];
+  voices?: string[];
 }
 
 interface RTXModelSelectorProps {
   configType: ConfigType;
   currentProvider?: string;
   currentModel?: string;
+  currentVoice?: string;
   onSave: () => void;
   onClose: () => void;
   t: (key: string) => string;
@@ -23,6 +26,7 @@ export default function RTXModelSelector({
   configType,
   currentProvider,
   currentModel,
+  currentVoice,
   onSave,
   onClose,
   t,
@@ -35,6 +39,7 @@ export default function RTXModelSelector({
   // Selected values
   const [selectedProvider, setSelectedProvider] = useState(currentProvider || "");
   const [selectedModel, setSelectedModel] = useState(currentModel || "");
+  const [selectedVoice, setSelectedVoice] = useState(currentVoice || ""); // For TTS
 
   // Load providers on mount
   useEffect(() => {
@@ -46,14 +51,28 @@ export default function RTXModelSelector({
       const res = await fetch(apiUrl("/api/v1/realtimex/providers"));
       if (res.ok) {
         const data = await res.json();
-        const providerList = configType === "llm" ? data.llm : data.embedding;
+        let providerList = [];
+        
+        if (configType === "llm") providerList = data.llm;
+        else if (configType === "embedding") providerList = data.embedding;
+        else if (configType === "tts") providerList = data.tts || []; // Handle TTS providers if available
+
         setProviders(providerList || []);
 
         // Set initial selection if not already set
         if (!selectedProvider && providerList?.length > 0) {
-          setSelectedProvider(providerList[0].provider);
-          if (providerList[0].models?.length > 0) {
-            setSelectedModel(providerList[0].models[0].id);
+          const firstProvider = providerList[0];
+          setSelectedProvider(firstProvider.provider);
+          
+          if (configType === "tts") {
+            // For TTS, model is usually fixed or default, but we might have voices
+            if (firstProvider.voices?.length > 0) {
+              setSelectedVoice(firstProvider.voices[0]);
+            }
+          } else {
+            if (firstProvider.models?.length > 0) {
+              setSelectedModel(firstProvider.models[0].id);
+            }
           }
         }
       }
@@ -68,12 +87,19 @@ export default function RTXModelSelector({
   const currentProviderData = providers.find((p) => p.provider === selectedProvider);
   const models = currentProviderData?.models || [];
 
-  // Update model when provider changes
+  // Update model/voice when provider changes
   useEffect(() => {
-    if (models.length > 0 && !models.find((m) => m.id === selectedModel)) {
-      setSelectedModel(models[0].id);
+    if (configType === "tts") {
+      const voices = currentProviderData?.voices || [];
+      if (voices.length > 0 && !voices.includes(selectedVoice)) {
+        setSelectedVoice(voices[0]);
+      }
+    } else {
+      if (models.length > 0 && !models.find((m) => m.id === selectedModel)) {
+        setSelectedModel(models[0].id);
+      }
     }
-  }, [selectedProvider, models, selectedModel]);
+  }, [selectedProvider, models, selectedModel, configType, currentProviderData, selectedVoice]);
 
   const handleSave = async () => {
     if (!selectedProvider || !selectedModel) return;
@@ -82,14 +108,21 @@ export default function RTXModelSelector({
     setError(null);
 
     try {
+      const payload: any = {
+        config_type: configType,
+        provider: selectedProvider,
+        model: selectedModel,
+      };
+
+      // Add voice for TTS
+      if (configType === "tts" && selectedVoice) {
+        payload.voice = selectedVoice;
+      }
+
       const res = await fetch(apiUrl("/api/v1/realtimex/config/apply"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          config_type: configType,
-          provider: selectedProvider,
-          model: selectedModel,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -116,7 +149,7 @@ export default function RTXModelSelector({
             </div>
             <div>
               <h2 className="font-semibold text-slate-900 dark:text-slate-100">
-                {t("RealTimeX")} {configType === "llm" ? "LLM" : t("Embedding")}
+                {t("RealTimeX")} {configType === "llm" ? "LLM" : configType === "embedding" ? t("Embedding") : "TTS"}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {t("Select provider and model")}
@@ -137,7 +170,7 @@ export default function RTXModelSelector({
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
             </div>
-          ) : providers.length === 0 ? (
+          ) : providers.length === 0 && configType !== "tts" ? ( // Allow TTS even if no providers listed (using defaults)
             <div className="text-center py-8 text-slate-500 dark:text-slate-400">
               {t("No providers available")}
             </div>
@@ -148,17 +181,27 @@ export default function RTXModelSelector({
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   {t("Provider")}
                 </label>
-                <select
-                  value={selectedProvider}
-                  onChange={(e) => setSelectedProvider(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-                >
-                  {providers.map((p) => (
-                    <option key={p.provider} value={p.provider}>
-                      {p.provider}
-                    </option>
-                  ))}
-                </select>
+                {providers.length > 0 ? (
+                  <select
+                    value={selectedProvider}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  >
+                    {providers.map((p, idx) => (
+                      <option key={`${p.provider}-${idx}`} value={p.provider}>
+                        {p.provider}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={selectedProvider || "realtimexai"}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    placeholder="realtimexai"
+                  />
+                )}
               </div>
 
               {/* Model Select */}
@@ -166,19 +209,65 @@ export default function RTXModelSelector({
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   {t("Model")}
                 </label>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  disabled={models.length === 0}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none disabled:opacity-50"
-                >
-                  {models.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name || m.id}
-                    </option>
-                  ))}
-                </select>
+                {models.length > 0 ? (
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    disabled={models.length === 0}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none disabled:opacity-50"
+                  >
+                    {models.map((m, idx) => (
+                      <option key={`${m.id}-${idx}`} value={m.id}>
+                        {m.name || m.id}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={selectedModel || (configType === "tts" ? "tts-1" : "")}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    placeholder={configType === "tts" ? "tts-1" : "Model ID"}
+                  />
+                )}
               </div>
+
+              {/* Voice Select (TTS Only) */}
+              {configType === "tts" && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    {t("Default Voice")}
+                  </label>
+                  {currentProviderData?.voices && currentProviderData.voices.length > 0 ? (
+                    <select
+                      value={selectedVoice}
+                      onChange={(e) => setSelectedVoice(e.target.value)}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    >
+                      <option value="">{t("Select a voice")}</option>
+                      {currentProviderData.voices.map((voice: string, idx: number) => (
+                        <option key={`${voice}-${idx}`} value={voice}>
+                          {voice}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={selectedVoice}
+                        onChange={(e) => setSelectedVoice(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                        placeholder="alloy"
+                      />
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {t("Leave empty to use system default")}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Info */}
               <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">

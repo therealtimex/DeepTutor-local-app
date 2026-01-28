@@ -315,30 +315,52 @@ class NarratorAgent(BaseAgent):
         self.logger.info(f"Starting TTS audio generation - ID: {audio_id}, Voice: {voice}")
 
         try:
-            binding = os.getenv("TTS_BINDING", "openai")
-            api_version = self.tts_config.get("api_version")
+            # Check if using RealTimeX SDK
+            if self.tts_config.get("source") == "realtimex":
+                from src.utils.realtimex import get_realtimex_sdk
 
-            # Only use Azure client if binding is explicitly Azure,
-            # OR if binding is generic 'openai' but an Azure-specific api_version is present.
-            if binding == "azure_openai" or (binding == "openai" and api_version):
-                client = AsyncAzureOpenAI(
-                    api_key=self.tts_config["api_key"],
-                    azure_endpoint=self.tts_config["base_url"],
-                    api_version=api_version,
+                sdk = get_realtimex_sdk()
+
+                # Use SDK to generate audio
+                audio_bytes = await sdk.tts.speak(
+                    text=script,
+                    voice=voice,
+                    model=self.tts_config.get("model"),
+                    provider=self.tts_config.get("provider")
+                    if self.tts_config.get("provider") != "realtimexai"
+                    else None,
                 )
+
+                # Save bytes to file
+                with open(audio_path, "wb") as f:
+                    f.write(audio_bytes)
+
             else:
-                # Create OpenAI client with custom base_url
-                client = AsyncOpenAI(
-                    base_url=self.tts_config["base_url"], api_key=self.tts_config["api_key"]
+                # Standard OpenAI/Azure implementation
+                binding = os.getenv("TTS_BINDING", "openai")
+                api_version = self.tts_config.get("api_version")
+
+                # Only use Azure client if binding is explicitly Azure,
+                # OR if binding is generic 'openai' but an Azure-specific api_version is present.
+                if binding == "azure_openai" or (binding == "openai" and api_version):
+                    client = AsyncAzureOpenAI(
+                        api_key=self.tts_config["api_key"],
+                        azure_endpoint=self.tts_config["base_url"],
+                        api_version=api_version,
+                    )
+                else:
+                    # Create OpenAI client with custom base_url
+                    client = AsyncOpenAI(
+                        base_url=self.tts_config["base_url"], api_key=self.tts_config["api_key"]
+                    )
+
+                # Call OpenAI TTS API
+                response = await client.audio.speech.create(
+                    model=self.tts_config["model"], voice=voice, input=script
                 )
 
-            # Call OpenAI TTS API
-            response = await client.audio.speech.create(
-                model=self.tts_config["model"], voice=voice, input=script
-            )
-
-            # Save audio to file
-            await response.stream_to_file(audio_path)
+                # Save audio to file
+                await response.stream_to_file(audio_path)
 
             self.logger.info(f"Audio saved to: {audio_path}")
 

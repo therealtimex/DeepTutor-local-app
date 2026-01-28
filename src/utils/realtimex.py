@@ -45,6 +45,8 @@ def get_realtimex_sdk() -> "RealtimeXSDK":
                         "llm.chat",  # For LLM completions
                         "llm.providers",  # For listing available providers
                         "llm.embed",  # For embeddings
+                        "tts.speak",  # For TTS
+                        "tts.providers",  # For listing TTS providers
                     ]
                 )
             )
@@ -160,21 +162,33 @@ async def get_cached_providers() -> dict:
     try:
         sdk = get_realtimex_sdk()
 
-        # Fetch both in parallel (conceptually, though await is sequential here)
-        # In a real async environment we might use asyncio.gather, but sequential is safe
+        # Fetch all providers in parallel (conceptually)
         llm_result = await sdk.llm.chat_providers()
         embed_result = await sdk.llm.embed_providers()
+        tts_result = await sdk.tts.list_providers()
 
         def serialize_provider(p):
-            return {
+            # Handle both object and dict responses (SDK might return dicts for TTS)
+            if isinstance(p, dict):
+                # Normalize: ensure 'provider' key exists (SDK uses 'id' for TTS)
+                if "provider" not in p and "id" in p:
+                    p["provider"] = p["id"]
+                return p
+            
+            data = {
                 "provider": p.provider,
                 "models": [{"id": m.id, "name": m.name} for m in p.models],
             }
+            # Add voices if available (for TTS)
+            if hasattr(p, "voices"):
+                data["voices"] = p.voices
+            return data
 
         _providers_cache = {
             "rtx_enabled": True,
             "llm": [serialize_provider(p) for p in llm_result.providers],
             "embedding": [serialize_provider(p) for p in embed_result.providers],
+            "tts": [serialize_provider(p) for p in tts_result],
         }
         _providers_cache_time = time.time()
 

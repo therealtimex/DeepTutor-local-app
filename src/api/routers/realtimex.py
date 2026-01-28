@@ -113,6 +113,8 @@ async def apply_rtx_config(request: RTXConfigApplyRequest):
             config_type_enum = ConfigType.LLM
         elif request.config_type == "embedding":
             config_type_enum = ConfigType.EMBEDDING
+        elif request.config_type == "tts":
+            config_type_enum = ConfigType.TTS
         else:
             raise HTTPException(400, f"Invalid config type: {request.config_type}")
 

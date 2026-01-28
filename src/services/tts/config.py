@@ -60,6 +60,7 @@ def get_tts_config() -> dict:
                 "base_url": config.get("base_url", ""),
                 "api_version": config.get("api_version"),
                 "voice": config.get("voice", "alloy"),
+                "source": config.get("source"),  # "realtimex" when using RTX
             }
     except ImportError:
         # Unified config service not yet available, fall back to env
