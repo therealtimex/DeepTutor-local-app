@@ -41,7 +41,6 @@ def get_realtimex_sdk() -> "RealtimeXSDK":
             # Specify ALL permissions needed by DeepTutor
             _sdk_instance = RealtimeXSDK(
                 config=SDKConfig(
-                    api_key="YK5SNGQ-67EM25S-JFKFJCT-HR43YCT",
                     permissions=[
                         "llm.chat",  # For LLM completions
                         "llm.providers",  # For listing available providers
@@ -81,7 +80,6 @@ def should_use_realtimex_sdk(force_check: bool = False) -> bool:
     Returns:
         True if all RealTimeX conditions are met
     """
-    return True
     global _detection_cache
 
     if _detection_cache is not None and not force_check:
