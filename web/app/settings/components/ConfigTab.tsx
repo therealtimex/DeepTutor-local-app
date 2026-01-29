@@ -248,6 +248,16 @@ export default function ConfigTab({
                         {t("Voice")}: {config.voice}
                       </span>
                     )}
+                    {config.speed && (
+                      <span>
+                        {t("Speed")}: {config.speed}x
+                      </span>
+                    )}
+                    {config.quality && (
+                      <span>
+                        {t("Quality")}: {config.quality}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -331,6 +341,9 @@ export default function ConfigTab({
           configType={configType}
           currentProvider={rtxConfig?.provider}
           currentModel={rtxConfig?.model}
+          currentVoice={rtxConfig?.voice}
+          currentSpeed={rtxConfig?.speed}
+          currentQuality={rtxConfig?.quality}
           onSave={() => {
             setShowRTXSelector(false);
             setRtxConfig(null);

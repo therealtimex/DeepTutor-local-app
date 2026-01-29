@@ -179,9 +179,10 @@ async def get_cached_providers() -> dict:
                 "provider": p.provider,
                 "models": [{"id": m.id, "name": m.name} for m in p.models],
             }
-            # Add voices if available (for TTS)
-            if hasattr(p, "voices"):
-                data["voices"] = p.voices
+            # Add config metadata if available (for TTS advanced options)
+            if hasattr(p, "config"):
+                data["config"] = p.config
+                
             return data
 
         _providers_cache = {
@@ -261,23 +262,41 @@ def get_rtx_active_config(config_type: str) -> Optional[dict]:
     return data.get(config_type)
 
 
-def set_rtx_active_config(config_type: str, provider: str, model: str) -> bool:
+def set_rtx_active_config(
+    config_type: str,
+    provider: str,
+    model: str,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+    quality: Optional[int] = None,
+) -> bool:
     """
     Set the active RTX config for a specific config type.
 
     Args:
-        config_type: "llm" or "embedding"
+        config_type: "llm", "embedding" or "tts"
         provider: Provider name (e.g., "openai")
         model: Model ID (e.g., "gpt-4o")
+        voice: Optional voice ID (for TTS)
+        speed: Optional speed multiplier (for TTS)
+        quality: Optional quality/inference steps (for TTS)
 
     Returns:
         True if saved successfully
     """
     data = _load_rtx_active_config()
-    data[config_type] = {
+    config = {
         "provider": provider,
         "model": model,
     }
+    if voice:
+        config["voice"] = voice
+    if speed is not None:
+        config["speed"] = speed
+    if quality is not None:
+        config["quality"] = quality
+
+    data[config_type] = config
     return _save_rtx_active_config(data)
 
 
