@@ -9,6 +9,8 @@ export interface ConfigItem {
   model?: string;
   dimensions?: number;
   voice?: string;
+  speed?: number;
+  quality?: number;
   api_version?: string;
   is_default?: boolean;
   is_active?: boolean;

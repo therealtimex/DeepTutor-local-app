@@ -498,9 +498,15 @@ class UnifiedConfigManager:
             if active:
                 provider = active.get("provider", "realtimexai")
                 model = active.get("model", "")
+                voice = active.get("voice")
+                speed = active.get("speed")
+                quality = active.get("quality")
             else:
                 # Use defaults
                 provider = "realtimexai"
+                voice = None
+                speed = None
+                quality = None
                 if config_type == ConfigType.LLM:
                     model = "gpt-4o-mini"
                 elif config_type == ConfigType.EMBEDDING:
@@ -508,7 +514,7 @@ class UnifiedConfigManager:
                 elif config_type == ConfigType.TTS:
                     model = "tts-1"
 
-            return {
+            config = {
                 "id": "rtx",
                 "name": "RealTimeX",
                 "is_default": False,
@@ -518,6 +524,16 @@ class UnifiedConfigManager:
                 "api_key": "—",  # No API key needed
                 "base_url": "—",  # Uses SDK proxy
             }
+            
+            # Add TTS-specific fields if present
+            if voice:
+                config["voice"] = voice
+            if speed is not None:
+                config["speed"] = speed
+            if quality is not None:
+                config["quality"] = quality
+                
+            return config
 
         except ImportError:
             return None
@@ -621,6 +637,8 @@ class UnifiedConfigManager:
                             "provider": rtx_active.get("provider", "realtimexai"),
                             "model": rtx_active.get("model", ""),
                             "voice": rtx_active.get("voice"),  # Include voice for TTS
+                            "speed": rtx_active.get("speed"),  # Include speed for TTS
+                            "quality": rtx_active.get("quality"),  # Include quality for TTS
                             "source": "realtimex",  # This tells services to use SDK
                         }
                     else:

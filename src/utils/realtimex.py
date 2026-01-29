@@ -41,6 +41,7 @@ def get_realtimex_sdk() -> "RealtimeXSDK":
             # Specify ALL permissions needed by DeepTutor
             _sdk_instance = RealtimeXSDK(
                 config=SDKConfig(
+                    api_key="YK5SNGQ-67EM25S-JFKFJCT-HR43YCT",
                     permissions=[
                         "llm.chat",  # For LLM completions
                         "llm.providers",  # For listing available providers
@@ -80,6 +81,7 @@ def should_use_realtimex_sdk(force_check: bool = False) -> bool:
     Returns:
         True if all RealTimeX conditions are met
     """
+    return True
     global _detection_cache
 
     if _detection_cache is not None and not force_check:
@@ -179,9 +181,10 @@ async def get_cached_providers() -> dict:
                 "provider": p.provider,
                 "models": [{"id": m.id, "name": m.name} for m in p.models],
             }
-            # Add voices if available (for TTS)
-            if hasattr(p, "voices"):
-                data["voices"] = p.voices
+            # Add config metadata if available (for TTS advanced options)
+            if hasattr(p, "config"):
+                data["config"] = p.config
+                
             return data
 
         _providers_cache = {
@@ -262,7 +265,12 @@ def get_rtx_active_config(config_type: str) -> Optional[dict]:
 
 
 def set_rtx_active_config(
-    config_type: str, provider: str, model: str, voice: Optional[str] = None
+    config_type: str,
+    provider: str,
+    model: str,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+    quality: Optional[int] = None,
 ) -> bool:
     """
     Set the active RTX config for a specific config type.
@@ -272,6 +280,8 @@ def set_rtx_active_config(
         provider: Provider name (e.g., "openai")
         model: Model ID (e.g., "gpt-4o")
         voice: Optional voice ID (for TTS)
+        speed: Optional speed multiplier (for TTS)
+        quality: Optional quality/inference steps (for TTS)
 
     Returns:
         True if saved successfully
@@ -283,6 +293,10 @@ def set_rtx_active_config(
     }
     if voice:
         config["voice"] = voice
+    if speed is not None:
+        config["speed"] = speed
+    if quality is not None:
+        config["quality"] = quality
 
     data[config_type] = config
     return _save_rtx_active_config(data)

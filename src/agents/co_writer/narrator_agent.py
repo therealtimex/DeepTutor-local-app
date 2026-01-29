@@ -329,6 +329,8 @@ class NarratorAgent(BaseAgent):
                     provider=self.tts_config.get("provider")
                     if self.tts_config.get("provider") != "realtimexai"
                     else None,
+                    speed=self.tts_config.get("speed"),
+                    num_inference_steps=self.tts_config.get("quality"),
                 )
 
                 # Save bytes to file
