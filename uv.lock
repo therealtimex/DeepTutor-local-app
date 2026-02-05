@@ -3999,14 +3999,14 @@ provides-extras = ["anthropic", "dashscope", "search", "raganything", "llamainde
 
 [[package]]
 name = "realtimex-sdk"
-version = "1.2.3"
+version = "1.2.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2a/f5/dd4f9a62c236b3ead14eeea3e6040f017e0dfdf60b2cc504ddaaf5df5eb3/realtimex_sdk-1.2.3.tar.gz", hash = "sha256:9943649f38655b67da918a18c04b176d0169ce2550a867beff28874f576fd6e6", size = 75688, upload-time = "2026-01-29T03:42:11.716Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/d2/15540e1d82ead789c7c22de5ef3c4a66e5797f1c41d9719df9c9a0144da4/realtimex_sdk-1.2.5.tar.gz", hash = "sha256:39040e9b40fc0ed757789f1695c39c1534ed817bacbc50b87a23569eb76a8ec2", size = 88641, upload-time = "2026-02-05T10:56:19.294Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/83/d40cb655844e6d9f0e6b7b8cfa73786192dfc2dbc176e5feb26ab0a0466c/realtimex_sdk-1.2.3-py3-none-any.whl", hash = "sha256:10e2926354c35d533ab4965d308789fca3a04061418a60a2827157c695ceb76f", size = 22448, upload-time = "2026-01-29T03:42:10.416Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/ec/7348525f51d578cc76cdacc0944b570b26a4976630f47c3d98f4424a2712/realtimex_sdk-1.2.5-py3-none-any.whl", hash = "sha256:caa2b82a65d17185db0d9423647dca85ede545cb9085b3f266580b92e02e5b6b", size = 22623, upload-time = "2026-02-05T10:56:17.604Z" },
 ]
 
 [[package]]

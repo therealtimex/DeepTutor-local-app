@@ -75,6 +75,10 @@ def should_use_realtimex_sdk(force_check: bool = False) -> bool:
     2. RealtimeX SDK is installed (importable)
     3. RealTimeX Main App is accessible (via SDK ping)
 
+    This function is synchronous but performs a liveness check.
+    It uses a robust ping mechanism that is safe to call even from within
+    running event loops (it uses a separate thread in that case).
+
     Args:
         force_check: Force re-check even if cached
 
@@ -108,6 +112,7 @@ def should_use_realtimex_sdk(force_check: bool = False) -> bool:
             return False
 
         # Check 3: Main App connectivity via SDK ping
+        # Now using robust ping_sync() that handles event loops safely
         try:
             sdk = get_realtimex_sdk()
             result = sdk.ping_sync()
