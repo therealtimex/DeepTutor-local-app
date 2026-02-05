@@ -20,6 +20,80 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True)
 
 
+class ExecutableResolver:
+    """
+    Resolves bundled executables (uvx, uv, npx) to their actual paths.
+    Ported from ExecutableResolver.js
+    """
+
+    def __init__(self):
+        self._resources_root = None
+
+    def get_resources_root(self) -> Path | None:
+        """
+        Get the resources root directory (~/.realtimex.ai)
+        Returns path to resources root or None if not found
+        """
+        if self._resources_root:
+            return self._resources_root
+
+        try:
+            home = Path.home()
+            self._resources_root = home / ".realtimex.ai"
+            return self._resources_root
+        except Exception as e:
+            print_flush(f"⚠️ [ExecutableResolver] Failed to resolve resources directory: {e}")
+            return None
+
+    def resolve_from_candidates(
+        self, env_var: str | None, candidates: list[Path | str]
+    ) -> str | None:
+        """
+        Find a valid executable from a list of candidate paths
+        """
+        search_paths = []
+        if env_var:
+            search_paths.append(Path(env_var))
+
+        search_paths.extend([Path(c) for c in candidates])
+
+        for candidate in search_paths:
+            if not candidate:
+                continue
+            try:
+                if candidate.exists() and candidate.is_file():
+                    return str(candidate)
+            except Exception:
+                pass
+        return None
+
+    def resolve_npx(self) -> str | None:
+        """
+        Resolve npx to bundled executable
+        """
+        resources_dir = self.get_resources_root()
+        if not resources_dir:
+            return None
+
+        node_version = os.environ.get("REALTIMEX_NPX_NODE_VERSION", "v22.16.0")
+        home = Path.home()
+
+        candidates = [
+            # User's NVM installation (most common case)
+            home / ".nvm" / "versions" / "node" / node_version / "bin" / "npx",
+            # NVM-installed node in resources dir (bundled)
+            resources_dir / ".nvm" / "versions" / "node" / node_version / "bin" / "npx",
+            # Windows NVM
+            Path("C:/nvm") / node_version / "npx.cmd",
+            # Bundled in Resources
+            resources_dir / "Resources" / "envs" / "Scripts" / "npx.cmd",
+        ]
+
+        return self.resolve_from_candidates(
+            env_var=os.environ.get("REALTIMEX_NPX_PATH"), candidates=candidates
+        )
+
+
 def print_flush(*args, **kwargs):
     """Print with flush=True by default"""
     kwargs.setdefault("flush", True)
@@ -625,7 +699,9 @@ def _start_frontend_npx(frontend_port, backend_port):
     """Start frontend using published package via npx (production mode)"""
 
     # Check if npx is available
-    npx_path = shutil.which("npx")
+    resolver = ExecutableResolver()
+    npx_path = resolver.resolve_npx() or shutil.which("npx")
+
     if not npx_path:
         print_flush("❌ Error: 'npx' command not found!")
         print_flush("   Please install Node.js and npm first.")
@@ -653,7 +729,7 @@ def _start_frontend_npx(frontend_port, backend_port):
     if os.name == "nt":
         env["PYTHONLEGACYWINDOWSSTDIO"] = "0"
 
-    npx_cmd = shutil.which("npx") or "npx"
+    npx_cmd = npx_path or "npx"
 
     # Process group configuration
     popen_kwargs = {
