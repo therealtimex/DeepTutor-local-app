@@ -811,6 +811,15 @@ def _start_frontend_npx(frontend_port, backend_port):
 
     npx_cmd = npx_path or "npx"
 
+    # Ensure the directory containing npx (and node) is in PATH
+    # This is critical for bundled environments where node might not be in system PATH
+    if npx_path:
+        npx_dir = os.path.dirname(os.path.abspath(npx_path))
+        current_path = env.get("PATH", "")
+        # Prepend to PATH to ensure our bundled node is found first
+        env["PATH"] = f"{npx_dir}{os.pathsep}{current_path}"
+        print_flush(f"📌 Added to PATH: {npx_dir}")
+
     # Process group configuration
     popen_kwargs = {
         "shell": False,
