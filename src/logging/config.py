@@ -42,9 +42,17 @@ def get_default_log_dir() -> Path:
 
 def get_global_log_level() -> str:
     """
-    Get the global log level from config/main.yaml -> logging.level
+    Get the global log level from Environment (LOG_LEVEL) or config/main.yaml
     Default: DEBUG
     """
+    import os
+    
+    # Priority 1: Environment variable
+    env_level = os.getenv("LOG_LEVEL")
+    if env_level:
+        return env_level.upper()
+
+    # Priority 2: Config file
     try:
         from src.services.config import load_config_with_main
 

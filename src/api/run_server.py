@@ -57,5 +57,5 @@ if __name__ == "__main__":
         port=backend_port,
         reload=True,
         reload_excludes=reload_excludes,
-        log_level="info",
+        log_level=os.getenv("LOG_LEVEL", "info").lower(),
     )
