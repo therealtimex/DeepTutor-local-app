@@ -143,6 +143,103 @@ else:
         return False
 
 
+def find_pid_by_port(port: int) -> int | None:
+    """
+    Find PID using a port with multiple fallback methods.
+    Returns PID or None if not found.
+    """
+    if os.name == "nt":
+        # Windows: use netstat
+        try:
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    if parts:
+                        try:
+                            return int(parts[-1])
+                        except ValueError:
+                            pass
+        except Exception:
+            pass
+        return None
+
+    # Unix: Try strategies in order: lsof -> ss -> netstat
+
+    # Strategy 1: lsof (standard)
+    try:
+        result = subprocess.run(
+            ["lsof", "-ti", f":{port}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            try:
+                # May return multiple PIDs, take the first one
+                return int(result.stdout.strip().split()[0])
+            except (ValueError, IndexError):
+                pass
+    except FileNotFoundError:
+        pass  # lsof not installed
+    except Exception:
+        pass
+
+    # Strategy 2: ss (modern Linux)
+    try:
+        # ss -lptn 'sport = :8001'
+        result = subprocess.run(
+            ["ss", "-lptn", f"sport = :{port}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            # Output format: Users:(("python",pid=1234,fd=3))
+            output = result.stdout
+            if f":{port}" in output and "pid=" in output:
+                import re
+
+                match = re.search(r"pid=(\d+)", output)
+                if match:
+                    return int(match.group(1))
+    except FileNotFoundError:
+        pass  # ss not installed
+    except Exception:
+        pass
+
+    # Strategy 3: netstat (legacy Unix)
+    try:
+        # netstat -nlp | grep :8001
+        p1 = subprocess.Popen(
+            ["netstat", "-nlp"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+        )
+        p2 = subprocess.Popen(
+            ["grep", f":{port}"], stdin=p1.stdout, stdout=subprocess.PIPE, text=True
+        )
+        if p1.stdout:
+            p1.stdout.close()
+        output, _ = p2.communicate(timeout=5)
+
+        if output:
+            # Expected: tcp 0 0 0.0.0.0:8001 0.0.0.0:* LISTEN 1234/python
+            parts = output.split()
+            for part in parts:
+                if "/" in part and part.split("/")[0].isdigit():
+                    return int(part.split("/")[0])
+    except FileNotFoundError:
+        pass
+    except Exception:
+        pass
+
+    return None
+
+
 def check_port_in_use(port: int) -> tuple[bool, int | None]:
     """
     Check if a port is in use and return the PID of the process using it.
@@ -177,42 +274,7 @@ def check_port_in_use(port: int) -> tuple[bool, int | None]:
             pass
 
     # Port is in use (connection succeeded), try to find the PID
-    pid = None
-    try:
-        if os.name == "nt":
-            # Windows: use netstat
-            result = subprocess.run(
-                ["netstat", "-ano"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            for line in result.stdout.splitlines():
-                if f":{port}" in line and "LISTENING" in line:
-                    parts = line.split()
-                    if parts:
-                        try:
-                            pid = int(parts[-1])
-                            break
-                        except ValueError:
-                            pass
-        else:
-            # Unix: use lsof
-            result = subprocess.run(
-                ["lsof", "-ti", f":{port}"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                # May return multiple PIDs, take the first one
-                try:
-                    pid = int(result.stdout.strip().split()[0])
-                except (ValueError, IndexError):
-                    pass
-    except Exception:
-        pass
-
+    pid = find_pid_by_port(port)
     return True, pid
 
 
@@ -233,7 +295,11 @@ def kill_process_on_port(port: int, force: bool = False) -> bool:
 
     if pid is None:
         print_flush(f"⚠️  Port {port} is in use but couldn't identify the process")
-        return False
+        # Retry detection once with slightly longer delay just in case
+        time.sleep(1)
+        _, pid = check_port_in_use(port)
+        if pid is None:
+            return False
 
     print_flush(f"   Stopping process {pid} on port {port}...")
 
@@ -241,21 +307,35 @@ def kill_process_on_port(port: int, force: bool = False) -> bool:
         if os.name == "nt":
             subprocess.run(["taskkill", "/F", "/PID", str(pid)], check=True, capture_output=True)
         else:
-            sig = signal.SIGKILL if force else signal.SIGTERM
-            os.kill(pid, sig)
+            # Try to kill the process group first (handles child processes)
+            try:
+                pgid = os.getpgid(pid)
+                sig = signal.SIGKILL if force else signal.SIGTERM
+                os.killpg(pgid, sig)
+            except (ProcessLookupError, PermissionError):
+                # Fallbck to simple kill if PGID fails
+                sig = signal.SIGKILL if force else signal.SIGTERM
+                os.kill(pid, sig)
+
             # Wait a moment for process to terminate
             time.sleep(0.5)
             # Check if still running, force kill if needed
             if not force:
                 try:
                     os.kill(pid, 0)  # Check if process exists
-                    os.kill(pid, signal.SIGKILL)
+                    # If still alive, Force Kill
+                    print_flush(f"   Process {pid} still alive, force killing...")
+                    try:
+                        pgid = os.getpgid(pid)
+                        os.killpg(pgid, signal.SIGKILL)
+                    except:
+                        os.kill(pid, signal.SIGKILL)
                     time.sleep(0.3)
                 except ProcessLookupError:
                     pass  # Process already terminated
 
         # Verify port is now free
-        time.sleep(0.3)
+        time.sleep(0.5)
         in_use, _ = check_port_in_use(port)
         if not in_use:
             print_flush(f"✅ Port {port} is now free")
