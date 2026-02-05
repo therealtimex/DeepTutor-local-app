@@ -7,10 +7,11 @@ Utilities for RealTimeX SDK integration.
 Provides unified SDK instance management and environment detection.
 """
 
-import logging
 from typing import TYPE_CHECKING, Optional
 
-logger = logging.getLogger(__name__)
+from src.logging import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from realtimex_sdk import RealtimeXSDK
@@ -174,7 +175,7 @@ async def get_cached_providers() -> dict:
                 if "provider" not in p and "id" in p:
                     p["provider"] = p["id"]
                 return p
-            
+
             data = {
                 "provider": p.provider,
                 "models": [{"id": m.id, "name": m.name} for m in p.models],
@@ -182,7 +183,7 @@ async def get_cached_providers() -> dict:
             # Add config metadata if available (for TTS advanced options)
             if hasattr(p, "config"):
                 data["config"] = p.config
-                
+
             return data
 
         _providers_cache = {
