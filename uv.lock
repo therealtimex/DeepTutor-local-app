@@ -3895,7 +3895,7 @@ wheels = [
 
 [[package]]
 name = "realtimex-deeptutor"
-version = "0.5.0.post9"
+version = "0.5.0.post10"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
